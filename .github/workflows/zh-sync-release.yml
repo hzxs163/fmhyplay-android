@@ -145,7 +145,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="zh-v$VERSION_NAME-r$GITHUB_RUN_NUMBER"
-          gh release create "$TAG" \
+          gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
             "FMHYPlay-TV-v$VERSION_NAME-zh.apk" \
             "FMHYPlay-Android-v$VERSION_NAME-zh.apk" \
             FMHYPlay-TV.apk FMHYPlay-Android.apk SHA256SUMS.txt \
