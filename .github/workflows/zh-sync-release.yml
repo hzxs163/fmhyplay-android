@@ -17,6 +17,7 @@ on:
     branches: [main]
     paths:
       - "res/values-zh/**"
+      - "src/**"
       - ".github/workflows/zh-sync-release.yml"
 
 permissions:

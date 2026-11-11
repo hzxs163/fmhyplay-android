@@ -8,9 +8,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /** Domain blocklist (HaGeZi Pro mini + pop-up ads). Bundled copy, refreshed weekly. */
 final class AdBlock {
@@ -18,6 +20,13 @@ final class AdBlock {
         "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.mini-onlydomains.txt",
         "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/popupads-onlydomains.txt"};
     static final long WEEK = 7L * 24 * 3600 * 1000;
+
+    // Rotating ad-SDK script paths seen on Chinese pirate sites: /api/s/<hex>.js, /api/r/<hex>.js
+    private static final Pattern AD_SCRIPT = Pattern.compile("^/api/[a-z]/[0-9a-f]{8,32}\\.js$", Pattern.CASE_INSENSITIVE);
+
+    // Ad hosts that rotate faster than the public lists; checked on top of the downloaded set
+    private static final Set<String> CUSTOM = new HashSet<>(Arrays.asList(
+        "ljk1qjylmzsym.top", "r70uy2.top", "hbaqqua.cn", "hbaooka.cn", "hbaooua.cn"));
 
     // ponytail: ~120k domains in a HashSet is ~12MB; switch to a sorted array if low-RAM TVs struggle
     static volatile Set<String> hosts = Collections.emptySet();
@@ -30,11 +39,16 @@ final class AdBlock {
     static boolean blocked(String host) {
         Set<String> set = hosts;
         for (String h = host; h != null; ) {
-            if (set.contains(h)) return true;
+            if (CUSTOM.contains(h) || set.contains(h)) return true;
             int dot = h.indexOf('.');
             h = dot < 0 ? null : h.substring(dot + 1);
         }
         return false;
+    }
+
+    /** True for a blocked host or an ad-SDK script path on any (rotating) domain. */
+    static boolean blocked(String host, String path) {
+        return blocked(host) || (path != null && AD_SCRIPT.matcher(path).matches());
     }
 
     static void load() {

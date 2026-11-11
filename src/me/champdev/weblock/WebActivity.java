@@ -449,7 +449,7 @@ public class WebActivity extends Activity {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
                 sniffer.request(r.getUrl().toString(), r.getRequestHeaders());
                 String host = r.getUrl().getHost();
-                if (host == null || r.isForMainFrame() || !AdBlock.enabled() || !AdBlock.blocked(host) || sameSite("https://" + host, siteUrl)) return null;
+                if (host == null || r.isForMainFrame() || !AdBlock.enabled() || sameSite("https://" + host, siteUrl) || !AdBlock.blocked(host, r.getUrl().getPath())) return null;
                 return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
             }
 
