@@ -14,9 +14,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -213,6 +215,7 @@ final class Sites {
         for (List<Site> list : load().values()) for (Site s : list) if (!has(out, s.url)) out.add(s);
         for (List<Site> list : languages().values()) for (Site s : list) if (!has(out, s.url)) out.add(s);
         for (Site s : favorites()) if (!has(out, s.url)) out.add(s);
+        for (Site s : custom()) if (!has(out, s.url)) out.add(s);
         return out;
     }
 
@@ -273,6 +276,29 @@ final class Sites {
             for (int n; (n = src.read(b)) > 0; ) buf.write(b, 0, n);
             return buf.toString("UTF-8");
         }
+    }
+
+    /** The list pasted in Settings, one site per line: "name|url" or just the url. */
+    static List<Site> custom() {
+        List<Site> out = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (String line : App.prefs.getString("mySites", "").split("\n")) {
+            line = line.trim().replace('｜', '|');
+            if (line.isEmpty() || line.charAt(0) == '#') continue;
+            int bar = line.indexOf('|');
+            String name = bar < 0 ? "" : line.substring(0, bar).trim();
+            String url = (bar < 0 ? line : line.substring(bar + 1)).trim();
+            if (!url.matches("(?i)https?://.*")) {
+                if (url.matches("(?i)^[a-z]+://.*")) continue;   // another scheme: not a web site
+                url = "https://" + url;
+            }
+            if (url.contains(" ") || Uri.parse(url).getHost() == null || !seen.add(url)) continue;
+            Site s = new Site();
+            s.url = url;
+            s.name = name.isEmpty() ? hostOf(url) : name;
+            out.add(s);
+        }
+        return out;
     }
 
     /** A site the user typed in; it lands in Favorites. */

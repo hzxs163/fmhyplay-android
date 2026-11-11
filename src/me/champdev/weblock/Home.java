@@ -336,6 +336,13 @@ public class Home extends Activity {
             favRow.addView(addCard());
         }
 
+        List<Sites.Site> own = Sites.custom();
+        if (!own.isEmpty()) {
+            col.addView(heading(App.t(R.string.home_my_sites)));
+            LinearLayout row = row();
+            for (Sites.Site s : own) row.addView(siteCard(s, false));
+        }
+
         List<Catalog.Title> mine = Catalog.mine();
         if (!mine.isEmpty()) {
             col.addView(heading(App.t(R.string.home_my_list)));
@@ -1542,6 +1549,11 @@ public class Home extends Activity {
 
         section(App.t(R.string.home_sites), R.drawable.ic_language);
         secBox.addView(settingRow(App.t(R.string.home_add_site), App.t(R.string.home_add_site_help), null, v -> addSiteDialog()));
+        TextView ownValue = new TextView(this);
+        secBox.addView(settingRow(App.t(R.string.home_my_sites), App.t(R.string.home_my_sites_help), ownValue, v -> mySitesDialog()));
+        int own = Sites.custom().size();
+        ownValue.setText(own == 0 ? App.t(R.string.home_none) : App.t(own == 1 ? R.string.home_sites_one : R.string.home_sites_many, own));
+        ownValue.setTextColor(own == 0 ? MUTED : GREEN);
         secBox.addView(settingRow(App.t(R.string.home_refresh_fmhy), App.t(R.string.home_refresh_fmhy_help), null, v -> {
             toast(App.t(R.string.home_checking_fmhy));
             App.io.execute(() -> {
@@ -2183,6 +2195,20 @@ public class Home extends Activity {
             .setPositiveButton(App.t(R.string.home_add), (d, w) -> {
                 if (in.getText().toString().trim().isEmpty()) return;
                 Sites.addCustom(in.getText().toString());
+                build();
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    void mySitesDialog() {
+        EditText in = WebActivity.field(this, App.t(R.string.home_my_sites_hint), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        in.setMinLines(8);
+        in.setGravity(Gravity.TOP | Gravity.START);
+        in.setText(App.prefs.getString("mySites", ""));
+        new AlertDialog.Builder(this).setTitle(App.t(R.string.home_my_sites)).setView(WebActivity.box(this, in))
+            .setPositiveButton(App.t(R.string.home_save), (d, w) -> {
+                App.prefs.edit().putString("mySites", in.getText().toString().trim()).apply();
                 build();
             })
             .setNegativeButton(android.R.string.cancel, null)
