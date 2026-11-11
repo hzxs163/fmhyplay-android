@@ -18,7 +18,9 @@ final class Sniffer {
         Hit(String url, boolean dash, Map<String, String> headers) {
             this.url = url;
             this.dash = dash;
-            this.master = !dash && path(url).contains("master");
+            // by the file's name, not the whole address: a show called "MasterChef" in the folder made every quality a "master"
+            String p = path(url);
+            this.master = !dash && p.substring(p.lastIndexOf('/') + 1).contains("master");
             this.headers = headers == null ? Collections.emptyMap() : new HashMap<>(headers);
         }
     }
@@ -167,19 +169,27 @@ final class Sniffer {
     // A proxy carries the real address in its query (/proxy/hls?url=https%3A%2F%2Fcdn/.../master.m3u8): that address is the stream
     static final java.util.regex.Pattern CARRIED = java.util.regex.Pattern.compile("[?&][^=&]+=(https?(?::|%3A)[^&]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
 
+    static final java.util.regex.Pattern MEDIA = java.util.regex.Pattern.compile("(?i)\\.(m3u8|mpd|flv|vtt|srt)$");
+
     static String path(String url) {
         java.util.regex.Matcher m = CARRIED.matcher(url);
-        if (m.find()) {
+        // not when the address itself is the stream (master.m3u8?ref=https://site): that query only says where it was asked from
+        if (!MEDIA.matcher(plain(url)).find() && m.find()) {
             try {
                 String inner = java.net.URLDecoder.decode(m.group(1), "UTF-8");
                 if (inner.startsWith("http")) url = inner;
             } catch (Exception ignored) { }
         }
+        return plain(url).toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** The address without its query and fragment. */
+    static String plain(String url) {
         int q = url.length();
         for (char c : new char[]{'?', '#'}) {
             int i = url.indexOf(c);
             if (i >= 0 && i < q) q = i;
         }
-        return url.substring(0, q).toLowerCase();
+        return url.substring(0, q);
     }
 }

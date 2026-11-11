@@ -48,7 +48,11 @@ var (
 		{"DoH 1.1.1.1", doh("https://1.1.1.1/dns-query")},
 		{"DoH 8.8.8.8", doh("https://8.8.8.8/resolve")},
 	}
-	apiTLS = func(host string) *tls.Config { return &tls.Config{ServerName: host} }
+	// HTTP/2 is offered, as the 1.1.1.1 app (and any browser) does: Cloudflare answers this sign-up with 429 over plain HTTP/1.1
+	apiTLS = func(host string) *tls.Config {
+		return &tls.Config{ServerName: host, NextProtos: []string{"h2", "http/1.1"}}
+	}
+	stagger = 300 * time.Millisecond // head start each address gets over the next one
 )
 
 // addDNS puts DNS servers (comma separated IP addresses) in front of the others: the user's own, such as their ISP's resolver.
@@ -126,8 +130,8 @@ func parseDoH(raw []byte) ([]string, error) {
 	return out, nil
 }
 
-// dialAPI connects (TLS included) to host:port: all sources are asked at once, every new address is dialled at once, first
-// working one wins. Used as the HTTP client's DialTLSContext, so the name stays the TLS name and the certificate is checked.
+// dialAPI connects (TLS included) to host:port: all sources are asked at once, each new address is dialled a moment after the
+// one before it (so a healthy network opens one connection), first working one wins. Used as the HTTP client's DialTLSContext, so the name stays the TLS name and the certificate is checked.
 func dialAPI(ctx context.Context, network, addr string) (net.Conn, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -186,8 +190,15 @@ func dialAPI(ctx context.Context, network, addr string) (net.Conn, error) {
 				continue
 			}
 			seen[ip] = true
+			wait := time.Duration(len(seen)-1) * stagger
 			pending++
 			go func() {
+				// One address at a time, the next only if this one is slow: a burst of connections to every address at once
+				// is what a flood looks like, and all but one were thrown away
+				select {
+				case <-time.After(wait):
+				case <-all.Done():
+				}
 				c, err := dialTLS(all, ip, port, host)
 				select {
 				case results <- result{c, ip, err}:

@@ -28,6 +28,14 @@ public class SnifferTest {
     static final String Y = "https://cdn.b/hls/ep2/master.m3u8";
 
     public static void main(String[] a) {
+        // the stream's own address wins over an address carried in its query (where it was asked from)
+        check("a stream with ?ref=https://site is still seen as a stream", Sniffer.path("https://cdn.x/a/b/master.m3u8?ref=https%3A%2F%2Fsite.com%2Fwatch"), "https://cdn.x/a/b/master.m3u8");
+        check("a proxy still gives the address it carries", Sniffer.path("https://site.com/proxy/hls?url=https%3A%2F%2Fcdn.x%2Fa%2Fmaster.m3u8%3Ft%3D1"), "https://cdn.x/a/master.m3u8");
+        check("master by file name", new Sniffer.Hit("https://cdn.x/a/master.m3u8", false, null).master, true);
+        check("a show named Master in the folder is not a master playlist", new Sniffer.Hit("https://cdn.x/masterchef-s01e02/720p.m3u8", false, null).master, false);
+        Sniffer withRef = new Sniffer(() -> { }, () -> { });
+        withRef.request("https://cdn.x/v/index.m3u8?origin=https://site.com", null);
+        check("request with a referrer in its query is taken", withRef.has(), true);
         Rig r = new Rig().play(SITE1, X);
         check("first stream is offered once", r.found, 1);
         check("and it is the one asked for", r.s.best().url, X);

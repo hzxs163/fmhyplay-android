@@ -101,7 +101,9 @@
     for (const sel of all) {
       const names = [...sel.options].map(o => (o.textContent || '').trim());
       if (names.some(n => !n || n.length > 40)) continue;
-      if (names.every(n => /^[\d\s.,-–]+$/.test(n))) continue;   // episode ranges, page numbers, years: not a server or language
+      // episode ranges, page numbers, years: not a server or language. (The dash is escaped: ",-–" was a range that matched
+      // nearly every letter, so dropdowns like Sub / Dub or Vidstream / Mp4upload were skipped as "numbers")
+      if (names.every(n => /^[\d\s.,\-–]+$/.test(n))) continue;
       let kind = kindOf([sel.getAttribute('aria-label'), sel.name, sel.id].join(' '));
       const lab = !kind && sel.id && document.querySelector('label[for="' + CSS.escape(sel.id) + '"]');
       if (lab) kind = kindOf(lab.textContent || '');
@@ -482,7 +484,7 @@
     const s = getComputedStyle(el);
     if (+s.opacity < 0.1 || s.visibility === 'hidden') return true;
     const clear = c => /rgba\(.*,\s*0\)$|transparent/.test(c);
-    return clear(s.backgroundColor) && s.backgroundImage === 'none' && !el.innerText.trim() && !el.querySelector('img,svg,picture,canvas,video,iframe');
+    return clear(s.backgroundColor) && s.backgroundImage === 'none' && !(el.innerText || '').trim() && !el.querySelector('img,svg,picture,canvas,video,iframe');
   };
   const layer = el => {
     for (let n = el, i = 0; n && n !== document.body && i < 4; n = n.parentElement, i++) {
@@ -520,6 +522,9 @@
   const closeWord = /^(got it!?|ok(ay)?|close|dismiss|(maybe )?later|no,? thanks|not now|skip|continue( to site)?|i understand|understood|x|×|✕|✖)$/i;
   const visible = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity > 0.05; };
   const dialogs = () => [...document.querySelectorAll('[role=dialog],[role=alertdialog],[aria-modal=true],dialog[open],[class*=modal i],[class*=popup i],[class*=dialog i],[class*=announce i],[class*=changelog i]')].filter(d => {
+    // never the page itself: <body class="modal-open"> (Bootstrap, while any pop-up is open) matched "modal", and with no
+    // Close button to press the whole page was taken away
+    if (d === document.body || d === document.documentElement || d.querySelectorAll('*').length > 400) return false;
     if (!visible(d) || d.closest('video') || d.querySelector('video,iframe')) return false;
     const r = d.getBoundingClientRect();
     return r.width * r.height > innerWidth * innerHeight * 0.12 && nag.test((d.innerText || '').slice(0, 2000));

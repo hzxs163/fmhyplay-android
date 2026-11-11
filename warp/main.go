@@ -149,7 +149,7 @@ func register(timeout time.Duration) (*account, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "okhttp/3.12.1")
 	req.Header.Set("CF-Client-Version", "a-6.11-2158")
-	resp, err := (&http.Client{Timeout: timeout, Transport: &http.Transport{DialTLSContext: dialAPI, DisableKeepAlives: true}}).Do(req)
+	resp, err := (&http.Client{Timeout: timeout, Transport: &http.Transport{DialTLSContext: dialAPI, ForceAttemptHTTP2: true, DisableKeepAlives: true}}).Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,8 @@ public class CatalogTest {
         check("TMDB title goes by its IMDb id, TMDB id kept", local.get(0).id.startsWith("tt") && local.get(0).tmdb.matches("\\d+") && !local.get(0).poster.isEmpty());
         check("TMDB garbage gives empty list", Catalog.parseTmdb("<html>", "movie").isEmpty());
         check("India has Hindi first", Catalog.languages("IN")[0].equals("Hindi") && Catalog.languages("IN").length > 3);
-        check("no local list for the US or an unknown country", Catalog.languages("US").length == 0 && Catalog.languages("").length == 0 && Catalog.languages("I").length == 0);
+        check("no local list for an unknown country", Catalog.languages("ZZ").length == 0 && Catalog.languages("").length == 0 && Catalog.languages("I").length == 0);
+        check("the UK is in the list, with English", Catalog.languages("GB").length == 1 && Catalog.languages("GB")[0].equals("English"));
         check("backdrop from the IMDb id", Catalog.backdrop(local.get(0)).startsWith("http") && Catalog.backdrop(new Catalog.Title()).isEmpty());
 
         check("start year of a range", Catalog.startYear("2002-2007") == 2002 && Catalog.startYear("2020–") == 2020 && Catalog.startYear("") == 0);

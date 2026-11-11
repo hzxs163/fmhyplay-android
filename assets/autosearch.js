@@ -2,8 +2,10 @@
   // Opens the title's own page on a site we have no address pattern for: a link on the page that names the title
   // (a card on the home page, or a search result) is pressed; else the site's search box is found (opening it first if it
   // hides behind a search icon), the title typed and Enter pressed, and the results are watched for the title.
-  const norm = s => (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+  const norm = s => (s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ').replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ').trim();
   const want = norm(q);
+  // (letters of every script are kept: a title in Hindi or Korean used to come out empty, and then any link with no Latin text "matched")
+  if (!want) return;
   // Score a link: 3 = its name is the title, 2 = the title and a year ("Anora (2024)"), +1 = the right year is there too.
   // ponytail: names only; a remake with the same name and no year shown can win, a wrong show is still one tap away from Back
   const pick = () => {

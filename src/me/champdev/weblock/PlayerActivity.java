@@ -1018,6 +1018,7 @@ public class PlayerActivity extends Activity {
     }
 
     void startPlayer(String url) {
+        Log.i(TAG, "stream " + url + " headers " + getIntent().getStringExtra("headers"));
         Map<String, String> headers = new HashMap<>();
         String ua = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36";
         try {
@@ -1131,6 +1132,16 @@ public class PlayerActivity extends Activity {
 
             @Override public void onPlayerError(PlaybackException e) {
                 Log.w(TAG, "playback error", e);
+                // which request failed and how: the answer's status, its address and what was sent with it
+                for (Throwable c = e.getCause(); c != null; c = c.getCause()) {
+                    if (c instanceof androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                        androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException r = (androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) c;
+                        Log.w(TAG, "FAILED " + r.responseCode + " " + r.dataSpec.uri + " sent " + r.dataSpec.httpRequestHeaders.keySet() + " + " + getIntent().getStringExtra("headers")
+                            + " answer " + r.headerFields.get("content-type") + " server " + r.headerFields.get("server"));
+                    } else if (c instanceof androidx.media3.datasource.HttpDataSource.HttpDataSourceException) {
+                        Log.w(TAG, "FAILED " + c + " " + ((androidx.media3.datasource.HttpDataSource.HttpDataSourceException) c).dataSpec.uri);
+                    } else if (c instanceof androidx.media3.common.ParserException) Log.w(TAG, "FAILED parse " + c.getMessage() + " stream " + getIntent().getStringExtra("url"));
+                }
                 if (getIntent().hasExtra("mime")) { Iptv.mark(channel(), false); Iptv.saveHealth(); }
                 Toast.makeText(PlayerActivity.this, App.t(getIntent().hasExtra("mime") ? R.string.player_channel_offline : R.string.player_cant_play, e.getErrorCodeName()),
                     Toast.LENGTH_LONG).show();

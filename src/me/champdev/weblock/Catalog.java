@@ -182,9 +182,11 @@ final class Catalog {
         "BG=Bulgarian", "GR=Greek", "RS=Serbian", "HR=Croatian", "SI=Slovenian", "AL=Albanian", "DE=German", "AT=German", "CH=German,French,Italian", "FR=French",
         "BE=French,Dutch", "NL=Dutch", "IT=Italian", "ES=Spanish,Catalan", "MX=Spanish", "AR=Spanish", "CO=Spanish", "CL=Spanish", "PE=Spanish", "VE=Spanish",
         "PT=Portuguese", "BR=Portuguese", "SE=Swedish", "NO=Norwegian", "DK=Danish", "FI=Finnish", "EE=Estonian", "LV=Latvian", "LT=Lithuanian", "ZA=Afrikaans,Zulu",
-        "KE=Swahili", "TZ=Swahili", "SO=Somali"};
+        "KE=Swahili", "TZ=Swahili", "SO=Somali",
+        // English-speaking countries: their row is English-language titles (the lists are by language, so they share one)
+        "GB=English", "US=English", "CA=English,French", "AU=English", "NZ=English", "IE=English,Irish"};
 
-    /** The languages a country's own films and series are made in ("IN" -> Hindi, Tamil...); none for English-speaking or unknown countries. */
+    /** The languages a country's own films and series are made in ("IN" -> Hindi, Tamil...); none for a country that is not in the table. */
     static String[] languages(String country) {
         for (String row : LOCAL) if (row.startsWith(country + "=") && !country.isEmpty()) return row.substring(3).split(",");
         return new String[0];
