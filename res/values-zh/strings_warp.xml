@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="warp_dns_title">WARP DNS</string>
+    <string name="warp_dns_help">选择 WARP 向哪个 DNS 查询 Cloudflare 的地址。自动适用于大多数网络；如果 WARP 提示无法连接，请填写你的网络服务商的 DNS。</string>
+    <string name="warp_dns_hint">DNS 服务器地址，多个用逗号分隔，例如 87.101.204.72</string>
+    <string name="warp_dns_auto">自动</string>
+    <string name="warp_dns_save">保存</string>
+    <string name="warp_dns_msg">WARP 在这里查询 Cloudflare 的地址。你的网络服务商的 DNS 地址可以在路由器的状态页查看。留空即为自动（使用当前网络的 DNS 加公共 DNS）。</string>
+</resources>

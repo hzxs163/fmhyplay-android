@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PunchPlay watch tracking: Settings row, sign-in dialog and the player toast. Every language has the same names. -->
+<resources>
+    <string name="punchplay_help">将你在播放器中观看的电影和剧集在 PunchPlay（一款免费的观看记录服务）上标记为已看。仅限从电影、剧集或动漫打开的内容。</string>
+    <string name="punchplay_disconnect_title">断开 PunchPlay？</string>
+    <string name="punchplay_disconnect_msg">FMHYPlay 将不再向 PunchPlay 同步你的观看内容。你的 PunchPlay 观看记录会保留。</string>
+    <string name="punchplay_connect">连接 PunchPlay</string>
+    <string name="punchplay_offline">无法连接 PunchPlay。请检查 WARP 后重试。</string>
+    <string name="punchplay_connected">PunchPlay 已连接</string>
+    <string name="punchplay_expired">验证码已过期。请关闭此窗口，再按一次 PunchPlay 获取新码。</string>
+    <string name="punchplay_refused">PunchPlay 拒绝了此请求。请关闭此窗口后重试。</string>
+    <string name="punchplay_marked">已在 PunchPlay 标记为已看</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stalker_button">Stalker 门户（MAC）</string>
+    <string name="stalker_title">Stalker 门户</string>
+    <string name="stalker_msg">IPTV 服务商提供的门户地址和 MAC 地址（即 MAG 盒子的登录信息）</string>
+    <string name="stalker_portal_hint">门户地址，例如 http://example.com:8080/c/</string>
+    <string name="stalker_mac_hint">MAC 地址，例如 00:1A:79:12:34:56</string>
+    <string name="stalker_bad_mac">MAC 地址格式为六组两位字符，例如 00:1A:79:12:34:56</string>
+    <string name="stalker_cant_sign_in">无法登录：请检查门户地址和 MAC 地址</string>
+    <string name="stalker_no_link">门户没有返回此频道的播放链接，请稍后重试。</string>
+</resources>
