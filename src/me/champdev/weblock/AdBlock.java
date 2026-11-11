@@ -26,7 +26,7 @@ final class AdBlock {
 
     // Ad hosts that rotate faster than the public lists; checked on top of the downloaded set
     private static final Set<String> CUSTOM = new HashSet<>(Arrays.asList(
-        "ljk1qjylmzsym.top", "r70uy2.top", "hbaqqua.cn", "hbaooka.cn", "hbaooua.cn"));
+        "ljk1qjylmzsym.top", "r70uy2.top", "hbaqqua.cn", "hbaooka.cn", "hbaooua.cn", "yk395.com"));
 
     // ponytail: ~120k domains in a HashSet is ~12MB; switch to a sorted array if low-RAM TVs struggle
     static volatile Set<String> hosts = Collections.emptySet();
@@ -49,6 +49,17 @@ final class AdBlock {
     /** True for a blocked host or an ad-SDK script path on any (rotating) domain. */
     static boolean blocked(String host, String path) {
         return blocked(host) || (path != null && AD_SCRIPT.matcher(path).matches());
+    }
+
+    /** JS: hides links to the custom ad hosts, and the ad box holding them (a banner can't be blocked by domain alone). */
+    static String hideScript() {
+        StringBuilder b = new StringBuilder("(function(){var B=[");
+        for (String h : CUSTOM) b.append('"').append(h).append("\",");
+        b.append("];function bad(h){for(var i=0;i<B.length;i++){var x=B[i];if(h===x||h.slice(-x.length-1)==='.'+x)return true}return false}");
+        b.append("function scan(){var l=document.querySelectorAll('a[href]');for(var i=0;i<l.length;i++){var a=l[i];try{var h=new URL(a.getAttribute('href'),location.href).hostname;if(!bad(h))continue;var p=a.closest('.module-adslist,.ads,.ad');(p||a).style.display='none'}catch(e){}}}");
+        b.append("function start(){scan();var t=0,mo=new MutationObserver(function(){if(t)return;t=setTimeout(function(){t=0;scan()},250)});mo.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){mo.disconnect()},15000)}");
+        b.append("if(document.documentElement)start();else document.addEventListener('DOMContentLoaded',start)})()");
+        return b.toString();
     }
 
     static void load() {

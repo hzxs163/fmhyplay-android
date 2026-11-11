@@ -468,6 +468,7 @@ public class WebActivity extends Activity {
                 if (pageError) return;
                 cloudflareCheck(v);
                 v.evaluateJavascript(DL_HOOK, null);
+                if (AdBlock.enabled() && !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) v.evaluateJavascript(AdBlock.hideScript(), null);
                 if (spatnav != null && !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) v.evaluateJavascript(spatnav, null);
                 if (pointer != null && pointer.on) v.evaluateJavascript("window.__fpClear&&__fpClear()", null);
                 String q = pendingQuery;
@@ -508,6 +509,9 @@ public class WebActivity extends Activity {
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
                 WebViewCompat.addDocumentStartJavaScript(web, frameHook, Collections.singleton("*"));
         } catch (IOException ignored) { }
+        // AdBlock.hideScript: hides known ad banners before first paint (domain lists alone can't remove a static banner)
+        if (AdBlock.enabled() && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
+            WebViewCompat.addDocumentStartJavaScript(web, AdBlock.hideScript(), Collections.singleton("*"));
         if (App.tv) {
             try {
                 // roles.js (what things are) goes first; spatnav.js (what to do about them) uses it

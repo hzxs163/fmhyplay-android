@@ -342,6 +342,7 @@ public class Home extends Activity {
             LinearLayout row = row();
             for (Catalog.Title t : mine) row.addView(posterCard(t, posterW()));
         }
+        otherLanguages();
         String movies = App.t(R.string.home_tab_movies), shows = App.t(R.string.home_tab_tv), anime = App.t(R.string.home_tab_anime);
         // The viewer's own country first (its languages' most popular titles), then the world's
         String region = App.region();
@@ -371,13 +372,18 @@ public class Home extends Activity {
             col.addView(heading(App.t(R.string.home_more)));
             siteRow(Cats.MORE, more);
         }
+    }
 
+    /** The other-language site lists, above the movie rows. Chinese comes first: it is the one opened most here. */
+    void otherLanguages() {
         Map<String, List<Sites.Site>> langs = Sites.languages();
-        if (!langs.isEmpty()) {
-            col.addView(heading(App.t(R.string.home_other_languages)));
-            LinearLayout row = row();
-            for (Map.Entry<String, List<Sites.Site>> l : langs.entrySet()) row.addView(languageCard(l.getKey(), l.getValue().size()));
-        }
+        if (langs.isEmpty()) return;
+        col.addView(heading(App.t(R.string.home_other_languages)));
+        LinearLayout row = row();
+        List<Sites.Site> zh = langs.get("Chinese");
+        if (zh != null) row.addView(languageCard("Chinese", zh.size()));
+        for (Map.Entry<String, List<Sites.Site>> l : langs.entrySet())
+            if (!"Chinese".equals(l.getKey())) row.addView(languageCard(l.getKey(), l.getValue().size()));
     }
 
     FrameLayout heroBox;
