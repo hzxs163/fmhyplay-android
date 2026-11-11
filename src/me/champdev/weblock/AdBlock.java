@@ -26,7 +26,11 @@ final class AdBlock {
 
     // Ad hosts that rotate faster than the public lists; checked on top of the downloaded set
     private static final Set<String> CUSTOM = new HashSet<>(Arrays.asList(
-        "ljk1qjylmzsym.top", "r70uy2.top", "hbaqqua.cn", "hbaooka.cn", "hbaooua.cn", "yk395.com"));
+        "ljk1qjylmzsym.top", "r70uy2.top", "hbaqqua.cn", "hbaooka.cn", "hbaooua.cn", "yk395.com",
+        // 555-style pirate sites: banner targets, the CDNs their banners load from, and their ad SDK
+        "79311710.com", "49716648.com", "40732457.com", "04321375.com", "33466502.com", "27823692.com",
+        "bihe278.com", "55kp2.com", "5kp5.top", "55dy83.com", "555kp24.com",
+        "eliteres.fanruan.com", "beijing2.xstore.qihu.com", "ddjzis.cn"));
 
     // ponytail: ~120k domains in a HashSet is ~12MB; switch to a sorted array if low-RAM TVs struggle
     static volatile Set<String> hosts = Collections.emptySet();
@@ -51,12 +55,26 @@ final class AdBlock {
         return blocked(host) || (path != null && AD_SCRIPT.matcher(path).matches());
     }
 
-    /** JS: hides links to the custom ad hosts, and the ad box holding them (a banner can't be blocked by domain alone). */
+    /**
+     * JS: hides links to the custom ad hosts and the box holding them, plus the banner pattern these
+     * sites inject (an image-only link to another site, alone in its own block). Runs before first
+     * paint, and keeps watching while the page builds itself.
+     */
     static String hideScript() {
         StringBuilder b = new StringBuilder("(function(){var B=[");
         for (String h : CUSTOM) b.append('"').append(h).append("\",");
         b.append("];function bad(h){for(var i=0;i<B.length;i++){var x=B[i];if(h===x||h.slice(-x.length-1)==='.'+x)return true}return false}");
-        b.append("function scan(){var l=document.querySelectorAll('a[href]');for(var i=0;i<l.length;i++){var a=l[i];try{var h=new URL(a.getAttribute('href'),location.href).hostname;if(!bad(h))continue;var p=a.closest('.module-adslist,.ads,.ad');(p||a).style.display='none'}catch(e){}}}");
+        b.append("function host(u){try{return new URL(u,location.href).hostname}catch(e){return ''}}");
+        b.append("function hide(a){var p=a.closest('.module-adslist,.ads,.ad,.ad-box,.adbox,.ad-container,.ad-list,.banner-ad,.gg');");
+        b.append("if(!p&&a.parentElement&&a.parentElement!==document.body&&a.parentElement.children.length===1)p=a.parentElement;");
+        b.append("(p||a).style.display='none'}");
+        b.append("function scan(){var l=document.querySelectorAll('a[href]');for(var i=0;i<l.length;i++){var a=l[i],h=host(a.getAttribute('href'));");
+        b.append("if(!h||h===location.hostname)continue;");
+        b.append("if(bad(h)){hide(a);continue}");
+        b.append("var img=a.querySelector('img');if(!img||(a.textContent||'').trim())continue;");
+        b.append("var r=a.getBoundingClientRect(),w=img.getAttribute('width')||'';");
+        b.append("if(w!=='100%'&&r.width<150&&(img.naturalWidth||0)<150)continue;");
+        b.append("var p=a.parentElement;if(p&&p!==document.body&&p.children.length>1)continue;hide(a)}}");
         b.append("function start(){scan();var t=0,mo=new MutationObserver(function(){if(t)return;t=setTimeout(function(){t=0;scan()},250)});mo.observe(document.documentElement,{childList:true,subtree:true});setTimeout(function(){mo.disconnect()},15000)}");
         b.append("if(document.documentElement)start();else document.addEventListener('DOMContentLoaded',start)})()");
         return b.toString();
