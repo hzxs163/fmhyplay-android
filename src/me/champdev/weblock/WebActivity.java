@@ -101,6 +101,17 @@ public class WebActivity extends Activity {
         + "if(!src){let best=0;for(const m of document.images){const r=m.getBoundingClientRect(),s2=m.currentSrc||m.src;"
         + "if(tm(s2)&&r.bottom>0&&r.top<innerHeight&&r.width*r.height>best){best=r.width*r.height;src=s2}}}"
         + "if(src)FMHY.poster(new URL(src,location.href).href)},true)}";
+    // A WebView built on the application context has no window, so Chromium can't draw its own <select>
+    // popup. Intercept the tap here and let the activity list the options in an AlertDialog instead.
+    static final String SELECT_HOOK = "(()=>{if(window!==top||window.__fpSel)return;window.__fpSel=1;const pend=new Map();let seq=0;"
+        + "window.__fpSelPick=function(id,i){const e=pend.get(id);pend.delete(id);if(!e||!e.isConnected)return;const o=e.options[i];if(!o)return;"
+        + "const set=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;set.call(e,o.value);"
+        + "e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))};"
+        + "addEventListener('click',function(ev){const s=ev.target instanceof Element&&ev.target.closest('select');"
+        + "if(!s||s.disabled||s.multiple||s.size>1||s.options.length<2)return;ev.preventDefault();ev.stopPropagation();"
+        + "const items=[];for(const o of s.options){const g=o.parentElement&&o.parentElement.tagName==='OPTGROUP'?(o.parentElement.label||''):'';items.push({t:(o.textContent||'').trim(),g:g})}"
+        + "const id=++seq;pend.set(id,s);const lab=s.getAttribute('aria-label')||s.title||'';"
+        + "try{FMHY.select(JSON.stringify({id:id,items:items,cur:s.selectedIndex,title:lab}))}catch(x){}},true)})()";
     // Page title and its poster for Continue watching: a TMDB poster/backdrop (what these sites use) wins,
     // then the biggest picture or CSS background on screen, then og:image
     static final String CAPTURE = "(()=>{const m=n=>(document.querySelector(`meta[property=\"${n}\"],meta[name=\"${n}\"]`)||{}).content||'';"
@@ -468,6 +479,7 @@ public class WebActivity extends Activity {
                 if (pageError) return;
                 cloudflareCheck(v);
                 v.evaluateJavascript(DL_HOOK, null);
+                if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) v.evaluateJavascript(SELECT_HOOK, null);
                 if (AdBlock.enabled() && !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) v.evaluateJavascript(AdBlock.hideScript(), null);
                 if (spatnav != null && !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) v.evaluateJavascript(spatnav, null);
                 if (pointer != null && pointer.on) v.evaluateJavascript("window.__fpClear&&__fpClear()", null);
@@ -509,6 +521,9 @@ public class WebActivity extends Activity {
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
                 WebViewCompat.addDocumentStartJavaScript(web, frameHook, Collections.singleton("*"));
         } catch (IOException ignored) { }
+        // SELECT_HOOK: the app-context WebView can't show Chromium's native <select> popup
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
+            WebViewCompat.addDocumentStartJavaScript(web, SELECT_HOOK, Collections.singleton("*"));
         // AdBlock.hideScript: hides known ad banners before first paint (domain lists alone can't remove a static banner)
         if (AdBlock.enabled() && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
             WebViewCompat.addDocumentStartJavaScript(web, AdBlock.hideScript(), Collections.singleton("*"));
@@ -923,6 +938,34 @@ public class WebActivity extends Activity {
         @JavascriptInterface public void clicked(String href) {
             lastClicked = href;
             lastClickedAt = SystemClock.uptimeMillis();
+        }
+
+        // A <select> was tapped: list its options in an AlertDialog, then hand the pick back to SELECT_HOOK
+        @JavascriptInterface public void select(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                JSONArray list = o.optJSONArray("items");
+                if (list == null || list.length() < 2) return;
+                String[] labels = new String[list.length()];
+                for (int i = 0; i < labels.length; i++) {
+                    JSONObject it = list.getJSONObject(i);
+                    String group = it.optString("g"), text = it.optString("t");
+                    labels[i] = group.isEmpty() ? text : group + " · " + text;
+                }
+                String title = o.optString("title");
+                int id = o.optInt("id"), cur = o.optInt("cur", -1);
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    new AlertDialog.Builder(this)
+                        .setTitle(title.isEmpty() ? App.t(R.string.web_select) : title)
+                        .setSingleChoiceItems(labels, cur, (d, w) -> {
+                            d.dismiss();
+                            web.evaluateJavascript("window.__fpSelPick&&__fpSelPick(" + id + "," + w + ")", null);
+                        })
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+                });
+            } catch (Exception ignored) { }
         }
     }
 
