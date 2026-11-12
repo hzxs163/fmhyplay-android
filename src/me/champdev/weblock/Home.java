@@ -1565,14 +1565,6 @@ public class Home extends Activity {
         // Which build is this? (the TV and phone APKs share a package, so say it on screen)
         String ver = "";
         try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
-        section(App.t(R.string.home_donate), R.drawable.ic_heart, true);
-        View why = note(App.t(R.string.home_donate_help));
-        why.setPadding(u(52, 50), 0, dp(14), dp(8));
-        why.setVisibility(secOpen ? View.VISIBLE : View.GONE);
-        secBox.addView(why);
-        secBox.addView(settingRow("Buy Me a Coffee", "buymeacoffee.com/rohit267", null, v -> openLink("https://buymeacoffee.com/rohit267")));
-        secBox.addView(settingRow("PayPal", "paypal.me/champdev", null, v -> openLink("https://paypal.me/champdev")));
-
         section(App.t(R.string.home_about), R.drawable.ic_info, true);
         secBox.addView(settingRow(App.t(R.string.home_about_site), "fmhyplay.github.io/android", null, v -> openLink("https://fmhyplay.github.io/android/")));
         secBox.addView(settingRow(App.t(R.string.home_about_source), "github.com/fmhyplay/android", null, v -> openLink("https://github.com/fmhyplay/android")));
@@ -1731,7 +1723,7 @@ public class Home extends Activity {
         section(title, icon, false);
     }
 
-    /** `fixed`: always open, its heading is a label and not a switch (Donate, About). */
+    /** `fixed`: always open, its heading is a label and not a switch (About). */
     void section(String title, int icon, boolean fixed) {
         secOpen = fixed || openSections.contains(title);
         secBox = new LinearLayout(this);   // one card per group: its heading, then its rows with a hairline between them
