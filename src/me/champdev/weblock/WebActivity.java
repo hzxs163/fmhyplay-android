@@ -326,7 +326,7 @@ public class WebActivity extends Activity {
             urlBar.setTextColor(Home.TEXT);
             urlBar.setTextSize(App.tv ? 13 : 12);
             urlBar.setGravity(Gravity.CENTER_VERTICAL);
-            int h = Home.dp(this, App.tv ? 30 : 28), pad = Home.dp(this, 10);   // slim: the page keeps the room
+            int h = Home.dp(this, App.tv ? 30 : 36), pad = Home.dp(this, 10);   // room for the Home button on its right
             urlBar.setPadding(pad, 0, pad, 0);
             urlBar.setBackgroundColor(Home.CARD);
             urlBar.setOnClickListener(v -> editAddress());
@@ -385,7 +385,7 @@ public class WebActivity extends Activity {
         // Anything the app drives from the start (the title's own page, a search for it, an episode) is behind the backdrop from the first frame
         if (playAfterLoad || pendingQuery != null || (show != null && show.series() && getIntent().getIntExtra("episode", 0) > 0))
             step("load", App.t(Warp.state == Warp.State.CONNECTING ? R.string.web_connecting_warp : R.string.web_step_loading), null);
-        if (!App.tv) addHomeButton(root);   // top right, where the player has it too; a TV has Menu, Back to home
+        if (!App.tv) addHomeButton(root);   // in the address bar row; a TV has Menu, Back to home
         setContentView(root);
         // 90/120 Hz phones would repaint an animated page twice as often for no visible gain: ask for 60 (less heat)
         android.view.WindowManager.LayoutParams wp = getWindow().getAttributes();
@@ -1081,9 +1081,10 @@ public class WebActivity extends Activity {
         App.main.removeCallbacks(openingGiveUp);
     }
 
-    /** A round Home button over the page (phones), top right where the player has it too. */
+    /** A round Home button in the address bar's right end (phones), where the player has one too. */
     void addHomeButton(FrameLayout root) {
-        int size = Home.dp(this, 40);
+        int bar = urlBar == null ? 0 : urlBar.getLayoutParams().height;
+        int size = bar > 0 ? bar : Home.dp(this, 40);
         ImageView b = new ImageView(this);
         b.setImageResource(R.drawable.ic_p_home);
         b.setColorFilter(Home.ACCENT);   // the player's house is the same
@@ -1095,7 +1096,13 @@ public class WebActivity extends Activity {
         b.setContentDescription(App.t(R.string.player_home));
         b.setOnClickListener(v -> Home.goHome(this));
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.END);
-        lp.setMargins(0, Home.dp(this, 10) + (urlBar == null ? 0 : urlBar.getLayoutParams().height), Home.dp(this, 16), 0);
+        if (bar > 0) {
+            int gap = Home.dp(this, 6);
+            lp.setMargins(0, 0, gap, 0);   // same row as the address bar, at its right end
+            urlBar.setPadding(urlBar.getPaddingLeft(), 0, urlBar.getPaddingRight() + size + gap, 0);
+        } else {
+            lp.setMargins(0, Home.dp(this, 10), Home.dp(this, 16), 0);
+        }
         root.addView(b, lp);
     }
 
