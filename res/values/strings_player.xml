@@ -125,4 +125,7 @@
     <string name="player_more">More</string>
     <string name="player_channels">Channels</string>
     <string name="player_more_watch">More to watch</string>
+    <string name="player_lock">Lock</string>
+    <string name="player_unlock">Unlock</string>
+    <string name="player_locked">Locked. Tap the lock on the left to unlock.</string>
 </resources>

@@ -122,4 +122,10 @@
     <string name="player_more">更多</string>
     <string name="player_channels">频道</string>
     <string name="player_more_watch">更多可看的内容</string>
+    <string name="player_sound_boost_now">音量增强 · %1$s · 对白 %2$s</string>
+    <string name="audio_title">音量增强</string>
+    <string name="audio_help">0 为关闭，20 为最大。音量增强会整体提升，最多 +20 dB。对白增强会削减低频轰鸣和低音并增加一些增益，让说话声更突出。调得太高可能失真。</string>
+    <string name="player_lock">锁定</string>
+    <string name="player_unlock">解锁</string>
+    <string name="player_locked">已锁定，点击左侧的锁按钮解锁</string>
 </resources>

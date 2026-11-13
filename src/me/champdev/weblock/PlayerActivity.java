@@ -112,6 +112,8 @@ public class PlayerActivity extends Activity {
     ImageView gestureIcon;
     View gestureFill;                    // the filled part of the indicator's vertical bar
     TextView gestureText;
+    boolean locked;                      // the lock on the left edge: taps and Back do nothing until it is tapped again
+    ImageView lockBtn;
     int zoom = 0;   // Fit at the start of every playback (the choice is not remembered)
     static final int[] ZOOMS = {R.string.player_zoom_fit, R.string.player_zoom_fill, R.string.player_zoom_stretch, R.string.player_zoom_16_9, R.string.player_zoom_4_3};
     android.media.audiofx.LoudnessEnhancer booster;   // Volume boost, on the player's audio session
@@ -559,6 +561,24 @@ public class PlayerActivity extends Activity {
         overlay.addView(bar, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         controls = overlay;
         root.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
+
+        // Lock, on the left edge: one tap makes every touch (and Back) do nothing, so a stray hand can't leave the video
+        lockBtn = new ImageView(this);
+        lockBtn.setImageResource(R.drawable.ic_p_lock_open);
+        lockBtn.setColorFilter(Color.WHITE);
+        lockBtn.setPadding(dp(10), dp(10), dp(10), dp(10));
+        GradientDrawable lbg = new GradientDrawable();
+        lbg.setShape(GradientDrawable.OVAL);
+        lbg.setColor(0x40000000);
+        lockBtn.setBackground(lbg);
+        lockBtn.setFocusable(false);
+        lockBtn.setContentDescription(App.t(R.string.player_lock));
+        lockBtn.setOnClickListener(v -> toggleLock());
+        FrameLayout.LayoutParams llp = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.START | Gravity.CENTER_VERTICAL);
+        llp.leftMargin = dp(10);
+        lockBtn.setVisibility(View.GONE);
+        root.addView(lockBtn, llp);
+
         tip = new TextView(this);
         tip.setTextColor(Color.WHITE);
         tip.setTextSize(14);
@@ -594,7 +614,7 @@ public class PlayerActivity extends Activity {
         skipBtn.setFocusable(true);
         skipBtn.setDefaultFocusHighlightEnabled(false);
         skipBtn.setVisibility(View.GONE);
-        skipBtn.setOnClickListener(v -> pressSkip());
+        skipBtn.setOnClickListener(v -> { if (!locked) pressSkip(); });
         FrameLayout.LayoutParams skp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
         skp.setMargins(0, 0, dp(24), dp(150));
         root.addView(skipBtn, skp);
@@ -693,6 +713,10 @@ public class PlayerActivity extends Activity {
     }
 
     boolean swipe(View v, MotionEvent ev) {
+        if (locked) {   // the picture takes no taps, swipes or double taps; only the lock button answers
+            if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) say(App.t(R.string.player_locked));
+            return true;
+        }
         if (taps == null) taps = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent e) { return true; }
 
@@ -1251,6 +1275,21 @@ public class PlayerActivity extends Activity {
         showControls();
     }
 
+    /** Lock / unlock: while locked the controls stay hidden and a stray tap or Back can't leave the video. */
+    void toggleLock() {
+        locked = !locked;
+        lockBtn.setImageResource(locked ? R.drawable.ic_p_lock : R.drawable.ic_p_lock_open);
+        lockBtn.setAlpha(locked ? 0.7f : 1f);
+        lockBtn.setContentDescription(App.t(locked ? R.string.player_unlock : R.string.player_lock));
+        if (locked) {
+            hideControls();
+            skipBtn.setVisibility(View.GONE);
+            say(App.t(R.string.player_locked));
+        } else {
+            showControls();
+        }
+    }
+
     // Presses only move a target; ExoPlayer seeks once, 400 ms after the last one (a seek per press re-buffers each time)
     void seekBy(long ms) {
         long dur = player.getDuration();
@@ -1281,8 +1320,9 @@ public class PlayerActivity extends Activity {
     final Runnable hideNotice = () -> notice.setVisibility(View.GONE);
 
     void showControls() {
-        if (inPip) return;
+        if (inPip || locked) return;
         controls.setVisibility(View.VISIBLE);
+        lockBtn.setVisibility(View.VISIBLE);
         hideAt = System.currentTimeMillis() + (inRow() ? 8000 : 3500);
         refreshChips();
         update();
@@ -1292,6 +1332,7 @@ public class PlayerActivity extends Activity {
         tip.setVisibility(View.GONE);
         rowFocus(false);
         controls.setVisibility(View.GONE);
+        lockBtn.setVisibility(locked ? View.VISIBLE : View.GONE);   // locked: it is the only thing left to tap
     }
 
     void update() {
@@ -1323,6 +1364,10 @@ public class PlayerActivity extends Activity {
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent e) {
+        if (locked && e.getKeyCode() == KeyEvent.KEYCODE_BACK) {   // a stray Back: the lock comes off first
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) say(App.t(R.string.player_locked));
+            return true;
+        }
         if (Home.holdBack(this, e)) return true;
         if (player == null) return super.dispatchKeyEvent(e);
         if (panel != null) {   // the Episodes list: normal focus keys, Back closes it
@@ -1787,6 +1832,7 @@ public class PlayerActivity extends Activity {
             }
             skipBtn.setText(App.t(now.kind.equals("recap") ? R.string.player_skip_recap : end ? R.string.player_skip_credits : R.string.player_skip_intro));
         }
+        if (locked) { skipBtn.setVisibility(View.GONE); return; }   // the auto-skip above still runs; the button would be a stray tap
         if (skipBtn.getVisibility() != View.VISIBLE) {
             skipBtn.setVisibility(View.VISIBLE);
             if (!inRow() && panel == null) skipBtn.requestFocus();   // OK presses it
@@ -2275,9 +2321,11 @@ public class PlayerActivity extends Activity {
         if (in) {
             closePanel();
             hideControls();
+            lockBtn.setVisibility(View.GONE);   // the small window is just the picture
             skipBtn.setVisibility(View.GONE);
             notice.setVisibility(View.GONE);
         } else if (offScreen) finishAndRemoveTask();   // the small window was closed: the video is done with
+        else if (locked) lockBtn.setVisibility(View.VISIBLE);
     }
 
     @Override protected void onStart() {
