@@ -114,6 +114,7 @@ public class PlayerActivity extends Activity {
     TextView gestureText;
     boolean locked;                      // the lock on the left edge: taps and Back do nothing until it is tapped again
     ImageView lockBtn;
+    final Runnable hideLock = () -> { if (locked) lockBtn.setVisibility(View.GONE); };   // the lock steps out of the way; a touch brings it back
     int zoom = 0;   // Fit at the start of every playback (the choice is not remembered)
     static final int[] ZOOMS = {R.string.player_zoom_fit, R.string.player_zoom_fill, R.string.player_zoom_stretch, R.string.player_zoom_16_9, R.string.player_zoom_4_3};
     android.media.audiofx.LoudnessEnhancer booster;   // Volume boost, on the player's audio session
@@ -714,7 +715,7 @@ public class PlayerActivity extends Activity {
 
     boolean swipe(View v, MotionEvent ev) {
         if (locked) {   // the picture takes no taps, swipes or double taps; only the lock button answers
-            if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) say(App.t(R.string.player_locked));
+            if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) showLock();   // a touch brings the lock back for 5 s
             return true;
         }
         if (taps == null) taps = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
@@ -1284,10 +1285,19 @@ public class PlayerActivity extends Activity {
         if (locked) {
             hideControls();
             skipBtn.setVisibility(View.GONE);
+            showLock();
             say(App.t(R.string.player_locked));
         } else {
+            App.main.removeCallbacks(hideLock);
             showControls();
         }
+    }
+
+    /** The lock shows for 5 s, then gets out of the way; locked, the picture is dead, so a touch is the only way back to it. */
+    void showLock() {
+        lockBtn.setVisibility(View.VISIBLE);
+        App.main.removeCallbacks(hideLock);
+        App.main.postDelayed(hideLock, 5000);
     }
 
     // Presses only move a target; ExoPlayer seeks once, 400 ms after the last one (a seek per press re-buffers each time)
@@ -1332,7 +1342,7 @@ public class PlayerActivity extends Activity {
         tip.setVisibility(View.GONE);
         rowFocus(false);
         controls.setVisibility(View.GONE);
-        lockBtn.setVisibility(locked ? View.VISIBLE : View.GONE);   // locked: it is the only thing left to tap
+        lockBtn.setVisibility(View.GONE);   // while locked, showLock() brings it back for a few seconds
     }
 
     void update() {
@@ -1365,7 +1375,7 @@ public class PlayerActivity extends Activity {
 
     @Override public boolean dispatchKeyEvent(KeyEvent e) {
         if (locked && e.getKeyCode() == KeyEvent.KEYCODE_BACK) {   // a stray Back: the lock comes off first
-            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) say(App.t(R.string.player_locked));
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) { showLock(); say(App.t(R.string.player_locked)); }
             return true;
         }
         if (Home.holdBack(this, e)) return true;
@@ -2325,7 +2335,7 @@ public class PlayerActivity extends Activity {
             skipBtn.setVisibility(View.GONE);
             notice.setVisibility(View.GONE);
         } else if (offScreen) finishAndRemoveTask();   // the small window was closed: the video is done with
-        else if (locked) lockBtn.setVisibility(View.VISIBLE);
+        else if (locked) showLock();
     }
 
     @Override protected void onStart() {
@@ -2449,6 +2459,7 @@ public class PlayerActivity extends Activity {
         App.main.removeCallbacks(tick);
         App.main.removeCallbacks(debugTick);
         App.main.removeCallbacks(hideNotice);
+        App.main.removeCallbacks(hideLock);
         if (booster != null) { booster.release(); booster = null; }
         if (voices != null) { voices.release(); voices = null; }
         if (player != null) { player.release(); player = null; }
