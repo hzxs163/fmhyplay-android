@@ -5,6 +5,14 @@
         <item name="android:windowBackground">@color/app_bg</item>
         <item name="android:colorAccent">#FF3B5C</item>
         <item name="android:alertDialogTheme">@style/Dialog</item>
+        <item name="android:windowAnimationStyle">@style/ScreenAnim</item>
+    </style>
+    <!-- Every screen opens and closes with a short fade and a little zoom -->
+    <style name="ScreenAnim" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/fp_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/fp_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/fp_close_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/fp_close_exit</item>
     </style>
     <!-- Dialogs in the app's own ink, not Material's grey -->
     <style name="Dialog" parent="@android:style/Theme.Material.Dialog.Alert">

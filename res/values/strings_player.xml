@@ -16,6 +16,9 @@
     <string name="player_boost_now">Volume boost · %1$s</string>
     <string name="player_db">+%1$d dB</string>
     <string name="player_off">Off</string>
+    <string name="player_sound_boost_now">Sound boost · %1$s · dialog %2$s</string>
+    <string name="audio_title">Sound boost</string>
+    <string name="audio_help">0 is off, 20 is the most. Volume boost raises everything, up to +20 dB. Dialog boost trims rumble and bass and adds some gain so voices stand out. Very high levels can distort.</string>
     <string name="player_on">On</string>
     <string name="player_dialog_now">Dialog boost · %1$s</string>
     <string name="player_subs_now">Subtitles · %1$s</string>

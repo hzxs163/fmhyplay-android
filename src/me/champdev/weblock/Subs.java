@@ -213,6 +213,27 @@ final class Subs {
      * Every press applies at once; `changed` runs after each, `closed` when the panel goes away. It sits at the top so the subtitles stay in view.
      */
     static void panel(android.app.Activity a, boolean timing, Runnable changed, Runnable closed) {
+        android.widget.LinearLayout body = new android.widget.LinearLayout(a);
+        body.setOrientation(android.widget.LinearLayout.VERTICAL);
+        List<Runnable> refresh = new ArrayList<>();
+        Runnable after = () -> { for (Runnable r : refresh) r.run(); changed.run(); };
+        row(a, body, refresh, App.t(R.string.subs_size), Subs::sizeLabel, by -> bump("subSize", 100, 10 * by, 50, 250), after);
+        row(a, body, refresh, App.t(R.string.subs_position), Subs::offsetLabel, by -> bump("subOffset", 0, 10 * by, -20, 280), after);   // 20 dp up is the default spot: down stops at the edge
+        row(a, body, refresh, App.t(R.string.subs_color), Subs::colorName, by -> App.prefs.edit().putInt("subColor", Math.floorMod(colorIndex() + by, COLORS.length)).apply(), after);
+        row(a, body, refresh, App.t(R.string.subs_background), Subs::backgroundLabel, by -> bump("subBg", 50, 25 * by, 0, 100), after);
+        if (timing) row(a, body, refresh, App.t(R.string.subs_timing), Subs::delayLabel, by -> delayMs = Math.max(-600000, Math.min(600000, delayMs + 100L * by)), after);
+        show(a, App.t(R.string.player_subtitles), body, App.t(timing ? R.string.subs_help_player : R.string.subs_help_settings), () -> {
+            App.prefs.edit().remove("subSize").remove("subOffset").remove("subBg").remove("subColor").apply();
+            if (timing) delayMs = 0;
+            after.run();
+        }, closed);
+    }
+
+    /**
+     * The frame of a "− value +" panel: title, the rows in `body` (they scroll when the screen is short, a phone in landscape), a help
+     * line and Reset / Done. It sits at the top so what it changes (subtitles) stays in view; `closed` runs when it goes away.
+     */
+    static void show(android.app.Activity a, String heading, android.widget.LinearLayout body, String helpText, Runnable reset, Runnable closed) {
         android.app.Dialog d = new android.app.Dialog(a);
         d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
         android.widget.LinearLayout box = new android.widget.LinearLayout(a);
@@ -221,39 +242,25 @@ final class Subs {
         box.setPadding(pad, pad, pad, Home.dp(a, 12));
         box.setBackground(Home.rounded(0xF0181320, Home.dp(a, 18)));
         android.widget.TextView title = new android.widget.TextView(a);
-        title.setText(App.t(R.string.player_subtitles));
+        title.setText(heading);
         title.setTextColor(Home.TEXT);
         title.setTextSize(20);
         title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         title.setPadding(0, 0, 0, Home.dp(a, 8));
         box.addView(title);
-        // Title and the Reset / Done buttons stay put; the rows between them scroll when the screen is short (a phone in landscape)
-        android.widget.LinearLayout body = new android.widget.LinearLayout(a);
-        body.setOrientation(android.widget.LinearLayout.VERTICAL);
         android.widget.ScrollView scroll = new android.widget.ScrollView(a);
         scroll.setFillViewport(false);
         scroll.addView(body);
         box.addView(scroll, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
-        List<Runnable> refresh = new ArrayList<>();
-        Runnable after = () -> { for (Runnable r : refresh) r.run(); changed.run(); };
-        row(a, body, refresh, App.t(R.string.subs_size), Subs::sizeLabel, by -> bump("subSize", 100, 10 * by, 50, 250), after);
-        row(a, body, refresh, App.t(R.string.subs_position), Subs::offsetLabel, by -> bump("subOffset", 0, 10 * by, -20, 280), after);   // 20 dp up is the default spot: down stops at the edge
-        row(a, body, refresh, App.t(R.string.subs_color), Subs::colorName, by -> App.prefs.edit().putInt("subColor", Math.floorMod(colorIndex() + by, COLORS.length)).apply(), after);
-        row(a, body, refresh, App.t(R.string.subs_background), Subs::backgroundLabel, by -> bump("subBg", 50, 25 * by, 0, 100), after);
-        if (timing) row(a, body, refresh, App.t(R.string.subs_timing), Subs::delayLabel, by -> delayMs = Math.max(-600000, Math.min(600000, delayMs + 100L * by)), after);
         android.widget.TextView help = new android.widget.TextView(a);
-        help.setText(App.t(timing ? R.string.subs_help_player : R.string.subs_help_settings));
+        help.setText(helpText);
         help.setTextColor(Home.MUTED);
         help.setTextSize(13);
         help.setPadding(0, Home.dp(a, 6), 0, Home.dp(a, 4));
         body.addView(help);
         android.widget.LinearLayout foot = new android.widget.LinearLayout(a);
         foot.setGravity(android.view.Gravity.END);
-        foot.addView(button(a, App.t(R.string.subs_reset), 0, v -> {
-            App.prefs.edit().remove("subSize").remove("subOffset").remove("subBg").remove("subColor").apply();
-            if (timing) delayMs = 0;
-            after.run();
-        }));
+        foot.addView(button(a, App.t(R.string.subs_reset), 0, v -> reset.run()));
         foot.addView(button(a, App.t(R.string.subs_done), 0, v -> d.dismiss()));
         box.addView(foot);
         d.setContentView(box);
@@ -269,11 +276,154 @@ final class Subs {
         w.getAttributes().y = Home.dp(a, 16);
         d.setOnDismissListener(x -> closed.run());
         d.show();
-        body.findViewWithTag("plus").requestFocus();   // the remote starts on Size +
+        body.findViewWithTag("plus").requestFocus();   // the remote starts on the first row's +
+    }
+
+    /**
+     * A confirmation in the app's own look: a title, a row (an icon and a line of text) for each thing it says, and two icon buttons:
+     * Cancel, and the one that does it (filled).
+     */
+    static void ask(android.app.Activity a, String heading, int[] icons, String[] lines, int okIcon, String okLabel, Runnable ok) {
+        ask(a, heading, icons, lines, okIcon, okLabel, ok, null, null);
+    }
+
+    /** Same, and a row whose entry in `edits` is not null can be pressed (a pencil at its end): that runs, after the dialog has closed. */
+    static void ask(android.app.Activity a, String heading, int[] icons, String[] lines, int okIcon, String okLabel, Runnable ok,
+                    Runnable[] edits, String[] editLabels) {
+        android.app.Dialog d = new android.app.Dialog(a);
+        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+        android.widget.LinearLayout box = new android.widget.LinearLayout(a);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = Home.dp(a, 22);
+        box.setPadding(pad, pad, pad, Home.dp(a, 16));
+        box.setBackground(Home.rounded(0xF0181320, Home.dp(a, 18)));
+        android.widget.TextView title = new android.widget.TextView(a);
+        title.setText(heading);
+        title.setTextColor(Home.TEXT);
+        title.setTextSize(20);
+        title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        title.setPadding(0, 0, 0, Home.dp(a, 10));
+        box.addView(title);
+        for (int i = 0; i < lines.length; i++) {
+            android.widget.LinearLayout row = new android.widget.LinearLayout(a);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(0, Home.dp(a, 7), 0, Home.dp(a, 7));
+            android.widget.ImageView icon = new android.widget.ImageView(a);
+            icon.setImageResource(icons[i]);
+            icon.setColorFilter(Home.MUTED);
+            android.widget.LinearLayout.LayoutParams il = new android.widget.LinearLayout.LayoutParams(Home.dp(a, 22), Home.dp(a, 22));
+            il.rightMargin = Home.dp(a, 14);
+            row.addView(icon, il);
+            android.widget.TextView line = new android.widget.TextView(a);
+            line.setText(lines[i]);
+            line.setTextColor(Home.TEXT);
+            line.setTextSize(16);
+            line.setMaxLines(4);
+            row.addView(line, new android.widget.LinearLayout.LayoutParams(0, -2, 1));
+            if (edits != null && edits[i] != null) {
+                final Runnable edit = edits[i];
+                android.widget.ImageView pencil = new android.widget.ImageView(a);
+                pencil.setImageResource(R.drawable.ic_edit);
+                pencil.setColorFilter(Home.ACCENT);
+                pencil.setContentDescription(editLabels[i]);
+                android.widget.LinearLayout.LayoutParams pl = new android.widget.LinearLayout.LayoutParams(Home.dp(a, 22), Home.dp(a, 22));
+                pl.leftMargin = Home.dp(a, 12);
+                row.addView(pencil, pl);
+                // looks like every other row (same padding, no box); the remote's ring shows only when it is on it
+                android.graphics.drawable.GradientDrawable ring = Home.rounded(0, Home.dp(a, 10));
+                ring.setStroke(Home.dp(a, 2), android.graphics.Color.WHITE);
+                android.graphics.drawable.StateListDrawable st = new android.graphics.drawable.StateListDrawable();
+                st.addState(new int[]{android.R.attr.state_focused}, ring);
+                row.setBackground(st);
+                row.setFocusable(true);
+                row.setClickable(true);
+                row.setOnClickListener(v -> { d.dismiss(); edit.run(); });
+            }
+            box.addView(row);
+        }
+        android.widget.LinearLayout foot = new android.widget.LinearLayout(a);
+        foot.setGravity(android.view.Gravity.END);
+        foot.setPadding(0, Home.dp(a, 14), 0, 0);
+        foot.addView(pill(a, R.drawable.ic_p_close, a.getString(android.R.string.cancel), false, v -> d.dismiss()));
+        android.widget.LinearLayout yes = pill(a, okIcon, okLabel, true, v -> { d.dismiss(); ok.run(); });
+        foot.addView(yes);
+        box.addView(foot);
+        d.setContentView(box);
+        android.view.Window w = d.getWindow();
+        w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+        w.setGravity(android.view.Gravity.CENTER);
+        w.setDimAmount(0.4f);
+        w.setLayout(Math.min(a.getResources().getDisplayMetrics().widthPixels - Home.dp(a, 24), Home.dp(a, 560)), -2);
+        d.show();
+        yes.requestFocus();
+    }
+
+    /** The folder for downloads: a preset or one of your own (under Download, Movies or Documents); `done` runs after it changed. */
+    static void pickFolder(android.app.Activity a, Runnable done) {
+        String[] presets = {"Download/FMHYPlay", "Movies/FMHYPlay", "Documents/FMHYPlay"};
+        String[] items = {Downloads.root() + "/" + presets[0], Downloads.root() + "/" + presets[1], Downloads.root() + "/" + presets[2], App.t(R.string.dl_folder_other)};
+        new android.app.AlertDialog.Builder(a).setTitle(App.t(R.string.dl_folder)).setOnCancelListener(d -> done.run()).setItems(items, (d, i) -> {
+            if (i < presets.length) { App.prefs.edit().putString("dlFolder", presets[i]).apply(); done.run(); return; }
+            android.widget.EditText in = WebActivity.field(a, Downloads.folder(), android.text.InputType.TYPE_CLASS_TEXT);
+            in.setText(Downloads.folder());
+            new android.app.AlertDialog.Builder(a).setTitle(App.t(R.string.dl_folder_prompt)).setView(WebActivity.box(a, in))
+                .setPositiveButton(android.R.string.ok, (d2, w) -> {
+                    String f = in.getText().toString().trim().replaceAll("[\\\\:*?\"<>|]", "").replaceAll("^/+|/+$", "");
+                    if (!f.matches("(?i)(Download|Movies|Documents)(/.*)?")) { android.widget.Toast.makeText(a, App.t(R.string.dl_folder_bad), android.widget.Toast.LENGTH_LONG).show(); return; }
+                    String root = f.split("/")[0];
+                    f = root.substring(0, 1).toUpperCase() + root.substring(1).toLowerCase() + f.substring(root.length());   // Android wants Download, Movies, Documents
+                    App.prefs.edit().putString("dlFolder", f).apply();
+                    done.run();
+                }).setNegativeButton(android.R.string.cancel, (d2, w) -> done.run()).setOnCancelListener(d2 -> done.run()).show();
+        }).show();
+    }
+
+    /** The file name (without its extension): whatever is typed is kept, minus what a file system refuses. `done` gets the name, or the old one if it was cancelled. */
+    static void pickName(android.app.Activity a, String current, java.util.function.Consumer<String> done) {
+        android.widget.EditText in = WebActivity.field(a, current, android.text.InputType.TYPE_CLASS_TEXT);
+        in.setText(current);
+        in.setSelection(current.length());
+        new android.app.AlertDialog.Builder(a).setTitle(App.t(R.string.dl_name_title)).setView(WebActivity.box(a, in))
+            .setPositiveButton(android.R.string.ok, (d, w) -> done.accept(Downloads.safeName(in.getText().toString())))
+            .setNegativeButton(android.R.string.cancel, (d, w) -> done.accept(current))
+            .setOnCancelListener(d -> done.accept(current)).show();
+    }
+
+    /** A rounded button of an icon and a short label; filled with the accent when it is the one that does the thing. */
+    static android.widget.LinearLayout pill(android.app.Activity a, int icon, String label, boolean filled, android.view.View.OnClickListener click) {
+        android.widget.LinearLayout b = new android.widget.LinearLayout(a);
+        b.setGravity(android.view.Gravity.CENTER);
+        b.setPadding(Home.dp(a, 18), 0, Home.dp(a, 20), 0);
+        android.widget.ImageView ic = new android.widget.ImageView(a);
+        ic.setImageResource(icon);
+        ic.setColorFilter(android.graphics.Color.WHITE);
+        android.widget.LinearLayout.LayoutParams il = new android.widget.LinearLayout.LayoutParams(Home.dp(a, 20), Home.dp(a, 20));
+        il.rightMargin = Home.dp(a, 8);
+        b.addView(ic, il);
+        android.widget.TextView t = new android.widget.TextView(a);
+        t.setText(label);
+        t.setTextColor(android.graphics.Color.WHITE);
+        t.setTextSize(15);
+        t.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        b.addView(t);
+        int r = Home.dp(a, 22);
+        android.graphics.drawable.GradientDrawable on = Home.rounded(filled ? Home.ACCENT : 0x40FFFFFF, r);
+        on.setStroke(Home.dp(a, 3), android.graphics.Color.WHITE);   // the remote's place
+        android.graphics.drawable.StateListDrawable bg = new android.graphics.drawable.StateListDrawable();
+        bg.addState(new int[]{android.R.attr.state_focused}, on);
+        bg.addState(new int[]{}, Home.rounded(filled ? Home.ACCENT : 0x26FFFFFF, r));
+        b.setBackground(bg);
+        b.setFocusable(true);
+        b.setClickable(true);
+        b.setOnClickListener(click);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(-2, Home.dp(a, 44));
+        lp.leftMargin = Home.dp(a, 10);
+        b.setLayoutParams(lp);
+        return b;
     }
 
     /** Label, − button, value, + button. `step` gets −1 or +1. */
-    private static void row(android.app.Activity a, android.widget.LinearLayout box, List<Runnable> refresh, String label,
+    static void row(android.app.Activity a, android.widget.LinearLayout box, List<Runnable> refresh, String label,
                             java.util.function.Supplier<String> value, java.util.function.IntConsumer step, Runnable after) {
         android.widget.LinearLayout r = new android.widget.LinearLayout(a);
         r.setGravity(android.view.Gravity.CENTER_VERTICAL);

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dl_title">Downloads</string>
+    <string name="dl_starting">Starting…</string>
+    <string name="dl_done_channel">Finished downloads</string>
+    <string name="dl_done">Download finished</string>
+    <string name="dl_notify_many">Downloading %1$d files</string>
+    <string name="dl_empty">Nothing here yet. While a movie, series or anime plays, open More in the player and choose Download.</string>
+    <string name="dl_hint_tv">Left and Right pick a button: pause, play or the bin.</string>
+    <string name="dl_hint_touch">Pause, play or delete with the buttons.</string>
+    <string name="dl_failed">Stopped: %1$s</string>
+    <string name="dl_speed">%1$s/s · %2$d×</string>
+    <string name="dl_connections_n">%1$d connections</string>
+    <string name="dl_checking">Checking the stream…</string>
+    <string name="dl_pause">Pause</string>
+    <string name="dl_delete">Delete</string>
+    <string name="dl_delete_confirm">Delete this download and its file?</string>
+    <string name="dl_resume">Resume</string>
+    <string name="dl_cancel">Cancel and delete the file</string>
+    <string name="dl_play">Play</string>
+    <string name="dl_delete_file">Delete the file</string>
+    <string name="dl_remove">Remove from the list (keep the file)</string>
+    <string name="dl_dash">This stream type (DASH) can\'t be downloaded yet</string>
+    <string name="dl_live">A live stream can\'t be downloaded</string>
+    <string name="dl_protected">This stream is protected and can\'t be downloaded</string>
+    <string name="dl_merge_failed">The picture and the sound of this stream can\'t be joined</string>
+    <string name="dl_added">Downloading: %1$s</string>
+    <string name="player_download">Download</string>
+    <string name="dl_confirm_title">Download this video?</string>
+    <string name="player_downloads">Downloads</string>
+    <string name="dl_open_settings">Downloads</string>
+    <string name="dl_open_help">Everything downloading and downloaded: progress, pause, resume, play.</string>
+    <string name="dl_active_count">%1$d running</string>
+    <string name="dl_connections">Connections</string>
+    <string name="dl_connections_help">How many parts of a download are fetched at once (1 to 8). More is faster until the site or the network slows it down.</string>
+    <string name="dl_connections_title">Download connections</string>
+    <string name="dl_folder">Folder</string>
+    <string name="dl_folder_help">Where downloads are saved: a folder under Download, Movies or Documents.</string>
+    <string name="dl_name_title">File name</string>
+    <string name="dl_name_change">Change file name</string>
+    <string name="dl_folder_change">Change folder</string>
+    <string name="dl_folder_other">Other folder…</string>
+    <string name="dl_folder_prompt">Folder (Download/…, Movies/… or Documents/…)</string>
+    <string name="dl_folder_bad">The folder must start with Download/, Movies/ or Documents/</string>
+</resources>

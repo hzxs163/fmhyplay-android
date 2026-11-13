@@ -83,7 +83,13 @@ public class App extends Application {
         // No screen of ours visible for 2 minutes: stop WARP (no keepalive traffic in the background), restart on return
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             int visible;
-            final Runnable idleStop = () -> { if (visible == 0 && Warp.state == Warp.State.ON) Warp.pause(); };
+            final Runnable idleStop = new Runnable() {
+                @Override public void run() {
+                    if (visible != 0 || Warp.state != Warp.State.ON) return;
+                    if (Downloads.active() > 0) { main.postDelayed(this, 60000); return; }   // a download still needs it: look again in a minute
+                    Warp.pause();
+                }
+            };
 
             @Override public void onActivityStarted(Activity a) {
                 visible++;

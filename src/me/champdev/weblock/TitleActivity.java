@@ -15,7 +15,7 @@ import java.util.List;
 /** One movie or series: poster, details, episodes by season, and Watch on the site you picked (its search box is filled in for you). */
 public class TitleActivity extends Home {
     final Catalog.Title t = new Catalog.Title();
-    static final int PAGE = 50;
+    static final int PAGE = 100;   // episode rows added at a time as the page is scrolled
     int season = 1, shownEps = PAGE;
     boolean refocus = true;   // TV: land on Watch when the screen first appears, not after every season click
 
@@ -50,6 +50,7 @@ public class TitleActivity extends Home {
     @Override void build() {
         col.removeAllViews();
         firstCard = null;
+        nextPage = null;
 
         LinearLayout hero = new LinearLayout(this);
         int w = App.tv ? 190 : 112;
@@ -153,14 +154,16 @@ public class TitleActivity extends Home {
         buttons.setPadding(0, u(4, 2), 0, 0);
         Sites.Site site = chosen();
         TextView watch = chip(v -> watch(null));
-        watch.setText(site == null ? App.t(R.string.title_no_site) : App.t(R.string.title_watch_on, site.name));
+        watch.setText(bare(site == null ? App.t(R.string.title_no_site) : App.t(R.string.title_watch_on, site.name)));
         watch.setTextColor(0xFFFFFFFF);
+        icon(watch, R.drawable.ic_pb_play);
         watch.setBackground(rounded(ACCENT, dp(22)));
         focusable(watch, dp(22));
         TextView list = chip(null);
         boolean mine = Catalog.isMine(t.id);
-        list.setText(App.t(mine ? R.string.title_in_list : R.string.title_add_list));
-        list.setOnClickListener(v -> { toast(App.t(Catalog.toggleMine(t) ? R.string.title_added : R.string.title_removed)); build(); });
+        list.setText(bare(App.t(mine ? R.string.title_in_list : R.string.title_add_list)));
+        icon(list, mine ? R.drawable.ic_p_check : R.drawable.ic_add);
+        list.setOnClickListener(v -> { toast(App.t(Catalog.toggleMine(t) ? R.string.title_added : R.string.title_removed)); rebuild(); });
         buttons.addView(watch);
         buttons.addView(list);
         if (t.trailer.matches("[\\w-]{6,20}")) {   // the YouTube app when there is one, else YouTube's page in the app
@@ -173,6 +176,7 @@ public class TitleActivity extends Home {
                 }
             });
             trailer.setText(App.t(R.string.title_trailer));
+            icon(trailer, R.drawable.ic_movie);
             buttons.addView(trailer);
         }
         android.widget.HorizontalScrollView scroller = new android.widget.HorizontalScrollView(this);
@@ -194,14 +198,14 @@ public class TitleActivity extends Home {
             // one row that scrolls sideways, so the episodes below are a short move away
             // Just "Watch on": the old line also spelled out "tap a site to open <title>", which ran long and wrapped
             col.addView(heading(App.t(R.string.title_watch_heading, "").split("\u00B7")[0].trim()));
-            if (App.tv || t.series()) {   // a series keeps the sites to one sideways row: its episodes come right after
+            if (t.series()) {   // a series keeps the sites to one sideways row: its episodes come right after
                 LinearLayout row = row();
                 for (Sites.Site s : sites) row.addView(siteCard(s, true));
             } else {
-                // A movie on a phone: the page scrolls down, not sideways, so two across
+                // A movie: nothing follows the sites, so they are a grid (5 across on a TV, 2 on a phone)
                 Grid grid = new Grid(col);
                 for (Sites.Site s : sites) grid.add(s);
-                cardW = 156;
+                cardW = App.tv ? 220 : 156;
             }
         }
         if (t.series() && !t.episodes.isEmpty()) episodes();
@@ -215,7 +219,7 @@ public class TitleActivity extends Home {
         seasons.setClipChildren(false);
         for (int s = 1; s <= Catalog.seasons(t); s++) {
             final int n = s;
-            TextView c = chip(v -> { season = n; shownEps = PAGE; build(); });
+            TextView c = chip(v -> { season = n; shownEps = PAGE; rebuild(); });
             c.setText(App.t(R.string.title_season, s));
             c.setTextColor(s == season ? 0xFFFFFFFF : TEXT);
             c.setBackground(rounded(s == season ? ACCENT : CARD, dp(22)));
@@ -233,12 +237,19 @@ public class TitleActivity extends Home {
         sc.addView(seasons);
         col.addView(sc);
 
-        // A page of episodes at a time: a daily soap has 2000 in one season, and a row (with its picture) for each ran the device out of memory
-        int shown = 0, inSeason = 0;
-        for (Catalog.Episode e : t.episodes) if (e.season == season) inSeason++;
+        // A page of episodes at a time: a daily soap has 2000 in one season, and a row (with its picture) for each ran the device out of memory.
+        // The next page is added below as the page is scrolled to its end (no button: it took the remote's focus away when it went).
+        addEpisodes(0, shownEps);
+        moreEpisodes();
+    }
+
+    /** Adds the rows for episodes [from, to) of the open season. */
+    void addEpisodes(int from, int to) {
+        int n = 0;
         for (Catalog.Episode e : t.episodes) {
             if (e.season != season) continue;
-            if (shown++ == shownEps) break;
+            if (n >= to) break;
+            if (n++ < from) continue;
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setPadding(u(12, 8), u(10, 7), u(14, 10), u(10, 7));
@@ -271,15 +282,22 @@ public class TitleActivity extends Home {
             row.setOnClickListener(v -> watch(e));
             col.addView(row);
         }
-        if (inSeason > shownEps) {
-            TextView more = text(App.t(R.string.home_load_more) + "  (" + (inSeason - shownEps) + ")", sp(15, 14), TEXT, true);
-            more.setGravity(Gravity.CENTER);
-            more.setPadding(0, dp(13), 0, dp(13));
-            more.setBackground(rounded(CARD, dp(14)));
-            focusable(more, dp(14));
-            more.setOnClickListener(v -> { int y = page.getScrollY(); shownEps += PAGE; build(); page.post(() -> page.scrollTo(0, y)); });
-            col.addView(more);
-        }
+    }
+
+    /** If the open season has more episodes than are shown, the next page is added when the page is scrolled near its end. */
+    void moreEpisodes() {
+        int inSeason = 0;
+        for (Catalog.Episode e : t.episodes) if (e.season == season) inSeason++;
+        if (inSeason <= shownEps) return;
+        int openSeason = season;
+        nextPage = () -> {
+            if (season != openSeason) return;
+            int from = shownEps;
+            shownEps += PAGE;
+            addEpisodes(from, shownEps);
+            moreEpisodes();
+        };
+        page.postDelayed(this::nearEnd, 300);
     }
 
     /**

@@ -33,7 +33,14 @@ final class Cats {
             if (t.matches(".*(anime|donghua).*")) add(out, ANIME);
             if (t.matches(".*(sport|football|motorsport|mma|wrestling|boxing|basketball|baseball|live event).*")) add(out, SPORTS);
         }
-        if (out.isEmpty()) out.add(section.equals("Classics / Public Domain") || section.equals("Film Archives") || section.equals("Video Streaming") ? MOVIES : MORE);
+        if (out.isEmpty()) {
+            switch (section) {
+                // FMHY's tags here are now only quality / feature words (4K, Dual Audio), but every site in these sections plays movies and TV
+                case "Stream Aggregators": case "P-Stream Forks": case "Dedicated-Server": case "Multi-Server": out.add(MOVIES); out.add(TV); break;
+                case "Classics / Public Domain": case "Film Archives": case "Video Streaming": out.add(MOVIES); break;
+                default: out.add(MORE);
+            }
+        }
         return out;
     }
 

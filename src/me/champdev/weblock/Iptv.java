@@ -785,8 +785,8 @@ final class Iptv {
     }
 
     /**
-     * The channels that go with one (by its address): the same first category in the same country, or the same playlist and group for one
-     * of yours; in list order, the channel itself among them. Empty when it is not in the lists. For the player's channel list and +/- keys.
+     * The channels that go with one (by its address): the same first category in the same country, then the country's other categories,
+     * or the same playlist and group for one of yours; in list order, the channel itself among them. Empty when it is not in the lists. For the player's channel list and +/- keys.
      */
     static List<Channel> siblings(String url) {
         List<Channel> out = new ArrayList<>();
@@ -797,6 +797,14 @@ final class Iptv {
         for (Channel c : all()) {
             if (!c.cats[0].equals(me.cats[0])) continue;
             if (own ? c.playlist.equals(me.playlist) && c.group.equals(me.group) : c.country.equals(me.country)) out.add(c);
+        }
+        if (own) return out;
+        // then the country's other categories (in the Categories row's order), so Channel + and the strip keep going past the end of this one
+        java.util.Set<String> have = new java.util.HashSet<>();
+        for (Channel c : out) have.add(c.url);
+        for (Map.Entry<String, List<Channel>> g : groups("cat").entrySet()) {
+            if (g.getKey().equals(me.cats[0])) continue;
+            for (Channel c : g.getValue()) if (c.country.equals(me.country) && c.adult == me.adult && have.add(c.url)) out.add(c);
         }
         return out;
     }

@@ -8,8 +8,8 @@ SDK=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 BT=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)   # newest build-tools installed
 JAR=$SDK/platforms/android-34/android.jar
 LIBS=$(ls libs/*.jar | tr '\n' ':')
-VERSION_CODE=${VERSION_CODE:-21901}
-VERSION_NAME=${VERSION_NAME:-2.19.1}   # CI overrides both from the release tag
+VERSION_CODE=${VERSION_CODE:-22001}
+VERSION_NAME=${VERSION_NAME:-2.20.1}   # CI overrides both from the release tag
 VERSION="--version-code $VERSION_CODE --version-name $VERSION_NAME"
 cd "$(dirname "$0")"
 scripts/fetch-assets.sh   # site lists and blocklist (kept out of the repository)
@@ -46,7 +46,7 @@ pack() { # $1 = tv | android, $2 = manifest, $3 = output name
 sed -e '/LEANBACK_LAUNCHER/d' -e 's| android:banner="@drawable/banner"||' AndroidManifest.xml > build/AndroidManifest-android.xml
 # The version is in the file name, so you can tell builds apart in Telegram, Downloads and on the TV
 if [ -n "$TEST_EXPORT" ]; then # emulator testing: WebActivity + IptvActivity exported so `adb shell am start` can open a test page, and Home answers the HOME key (the emulator has no other launcher)
-  sed -e 's|\(\.WebActivity" android:exported="\)false|\1true|' -e 's|<application |<application android:debuggable="true" |' -e 's|\(\.IptvActivity" android:exported="\)false|\1true|' -e 's|\(\.TitleActivity" android:exported="\)false|\1true|' -e 's|\(\.Cast\$Keep" android:exported="\)false|\1true|' -e 's|<category android:name="android.intent.category.LEANBACK_LAUNCHER"/>|&<category android:name="android.intent.category.HOME"/><category android:name="android.intent.category.DEFAULT"/>|' AndroidManifest.xml > build/AndroidManifest-test.xml
+  sed -e 's|\(\.WebActivity" android:exported="\)false|\1true|' -e 's|<application |<application android:debuggable="true" |' -e 's|\(\.IptvActivity" android:exported="\)false|\1true|' -e 's|\(\.TitleActivity" android:exported="\)false|\1true|' -e 's|\(\.PlayerActivity" android:exported="\)false|\1true|' -e 's|\(\.DownloadsActivity" android:exported="\)false|\1true|' -e 's|\(\.Cast\$Keep" android:exported="\)false|\1true|' -e 's|<category android:name="android.intent.category.LEANBACK_LAUNCHER"/>|&<category android:name="android.intent.category.HOME"/><category android:name="android.intent.category.DEFAULT"/>|' AndroidManifest.xml > build/AndroidManifest-test.xml
   pack tv build/AndroidManifest-test.xml FMHYPlay-TV-test.apk
   sed -e '/LEANBACK_LAUNCHER/d' -e 's| android:banner="@drawable/banner"||' build/AndroidManifest-test.xml > build/AndroidManifest-android-test.xml
   pack android build/AndroidManifest-android-test.xml FMHYPlay-Android-test.apk

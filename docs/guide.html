@@ -11,7 +11,7 @@
 </div></header>
 
 <main><div class="layout">
-<aside class="toc"><a href="#install">Install</a><a href="#browse">Browse and play</a><a href="#favorites">Favorites and My list</a><a href="#addsite">Add your own site</a><a href="#remote">TV remote</a><a href="#touch">Phone and tablet</a><a href="#player">FMHYPlayer</a><a href="#episodes">Episodes and skipping</a><a href="#cast">Cast to TV</a><a href="#subtitles">Subtitles</a><a href="#simkl">Simkl</a><a href="#punchplay">PunchPlay</a><a href="#iptv">IPTV</a><a href="#addstream">Add a stream or playlist</a><a href="#sources">Your own sources</a><a href="#network">WARP and ad blocking</a><a href="#troubleshooting">Troubleshooting</a></aside>
+<aside class="toc"><a href="#install">Install</a><a href="#browse">Browse and play</a><a href="#favorites">Favorites and My list</a><a href="#addsite">Add your own site</a><a href="#remote">TV remote</a><a href="#touch">Phone and tablet</a><a href="#player">FMHYPlayer</a><a href="#episodes">Episodes and skipping</a><a href="#cast">Cast to TV</a><a href="#subtitles">Subtitles</a><a href="#downloads">Downloads</a><a href="#simkl">Simkl</a><a href="#punchplay">PunchPlay</a><a href="#iptv">IPTV</a><a href="#addstream">Add a stream or playlist</a><a href="#sources">Your own sources</a><a href="#network">WARP and ad blocking</a><a href="#troubleshooting">Troubleshooting</a></aside>
 <article>
 <h1>User guide</h1>
 <p class="sub">Everything you need to use FMHYPlay on a TV or a phone.</p>
@@ -103,7 +103,8 @@ adb install -r FMHYPlay-TV-vX.Y.Z.apk</code></pre>
 <tr><td>Episodes</td><td>A strip of episodes along the bottom, each with its picture and name, while the video keeps playing. The one playing is marked; pick another and it opens. For a live channel the same button is <i>Channels</i> (the channel's category in its country), for a movie <i>More to watch</i>. <kbd>Down</kbd> from the buttons opens it too; the button again, <kbd>Back</kbd> or a tap outside closes it.</td></tr>
 <tr><td>Servers</td><td>The site's own servers (see below).</td></tr>
 <tr><td>Subtitles</td><td>The stream's subtitles, <i>Search subtitles</i>, and <i>Settings</i> (size, position, color, background, timing).</td></tr>
-<tr><td>More</td><td>Speed (0.5x to 2x), Volume boost (up to +12 dB), Dialog boost (clearer voices, off until you turn it on), Zoom (Fit, Fill, Stretch, 16:9, 4:3), Debug overlay and From the start. <i>Debug overlay</i> shows live numbers over the picture: size and frame rate, codec and whether the decoder is hardware or software, video and audio bitrate, network speed (last download, estimate, 30-second average, total), buffer, dropped frames, stream type and host, how long the video took to open, and memory. It stays on or off as you leave it.</td></tr>
+<tr><td>Download</td><td>Saves the movie, series or anime you are watching (see <a href="#downloads">Downloads</a>).</td></tr>
+<tr><td>More</td><td>Speed (0.5x to 2x), Sound boost (Volume boost and Dialog boost, each from 0 to 20, off at 0), Downloads, Zoom (Fit, Fill, Stretch, 16:9, 4:3), Debug overlay and From the start. <i>Debug overlay</i> shows live numbers over the picture: size and frame rate, codec and whether the decoder is hardware or software, video and audio bitrate, network speed (last download, estimate, 30-second average, total), buffer, dropped frames, stream type and host, how long the video took to open, and memory. It stays on or off as you leave it.</td></tr>
 <tr><td>Cast, Full screen</td><td>Send the video to a TV (phone), and turn the phone.</td></tr></table>
 <div class="note">For live channels the −10 and +10 buttons and the progress bar are hidden, since there is nothing to seek in.</div>
 
@@ -131,6 +132,16 @@ adb install -r FMHYPlay-TV-vX.Y.Z.apk</code></pre>
 <li><b>Color</b> and <b>Background</b>.</li>
 <li><b>Timing</b>: + shows subtitles later, − earlier, 0.1 s a press. It applies to the video you are watching.</li>
 <li><i>Reset</i> puts them back.</li>
+</ul>
+
+<h2 id="downloads">Downloads</h2>
+<p>While a movie, series or anime plays, press <b>Download</b> (the arrow pointing down, next to More). FMHYPlay looks at the stream and asks first: it shows the file name and the full path of the folder, and the pencil next to each one changes it. Downloads keep going when you leave the app, with the progress in a notification.</p>
+<ul>
+<li><b>File names</b> read like <code>Crawlers.2024.1080p.FMHYPlay.mp4</code>: the title and year (or <code>S01E02</code> and the episode name for a series), the quality, and the app's mark, with dots between the parts.</li>
+<li><b>Several connections</b> at once, 4 by default: a plain file is fetched in parts, an HLS stream a few pieces at a time. Change it in <i>Settings, Downloads, Connections</i> (1 to 8).</li>
+<li><b>Folder:</b> <i>Download/FMHYPlay</i>, or another one under Download, Movies or Documents in <i>Settings, Downloads, Folder</i>.</li>
+<li>The <b>Downloads</b> screen (<i>More, Downloads</i>, or <i>Settings, Downloads</i>) lists them with the file's path and a pause, play and bin button each; a tick marks a finished one. A paused download carries on from where it stopped.</li>
+<li>HLS streams are saved as <code>.ts</code>, or as <code>.mp4</code> with a seek index, so the video can be skipped through. A stream that keeps its sound in a separate playlist is saved as an <code>.mp4</code> with the sound joined in (it takes a moment at the end). DASH streams, live streams and protected streams cannot be downloaded.</li>
 </ul>
 
 <h2 id="simkl">Simkl</h2>

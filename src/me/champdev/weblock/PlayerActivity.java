@@ -87,7 +87,7 @@ public class PlayerActivity extends Activity {
     long hideAt;
     LinearLayout chipRow;
     final List<LinearLayout> chips = new ArrayList<>();
-    LinearLayout chipCast, chipRotate, chipEpisodes, chipPrev, chipNext, chipDub, chipServers, chipQuality, chipAudio, chipSubs, chipMore;
+    LinearLayout chipCast, chipRotate, chipEpisodes, chipPrev, chipNext, chipDub, chipServers, chipQuality, chipAudio, chipSubs, chipDownload, chipMore;
     Catalog.Title seriesInfo;   // the series playing, with its episodes (for Episodes and Next)
     View panel;                 // the Episodes list, over the video
     boolean shelfOpen;          // the panel is the strip of cards along the bottom (the controls stay on with it)
@@ -118,7 +118,7 @@ public class PlayerActivity extends Activity {
     android.media.audiofx.Equalizer voices;           // Dialog boost, same session
     // Every video starts with the Settings defaults; the Audio button changes them for this video only
     int boost = boostDb();
-    boolean voice = dialogBoost();
+    int voice = dialogLevel();
     boolean subsTried;   // the remembered or automatic subtitles were looked at for this video
     MediaItem.Builder mediaItem;   // kept so an OpenSubtitles pick can be added to the playing stream
     List<MediaItem.SubtitleConfiguration> subList;
@@ -164,7 +164,7 @@ public class PlayerActivity extends Activity {
         startPlayer(url);
     }
 
-    List<Iptv.Channel> sibs = new ArrayList<>();   // a live channel's category (same country), for Channels and the +/- keys
+    List<Iptv.Channel> sibs = new ArrayList<>();   // a live channel's category and then the country's other ones, for Channels and the +/- keys
 
     /** The channel `dir` places on in its category (wraps round); null when this is not a listed channel. */
     Iptv.Channel channelStep(int dir) {
@@ -180,12 +180,12 @@ public class PlayerActivity extends Activity {
         finish();
     }
 
-    /** The channels of this one's category as a strip of cards along the bottom (a window of them around the one playing). */
+    /** The channels of this one's category, then the country's other categories, as a strip of cards along the bottom (a window of them around the one playing). */
     void channelsShelf() {
         int at = 0;
         for (int i = 0; i < sibs.size(); i++) if (sibs.get(i).url.equals(channel())) at = i;
-        int from = Math.max(0, Math.min(at - 20, sibs.size() - 60));
-        List<Iptv.Channel> list = sibs.subList(from, Math.min(sibs.size(), from + 60));
+        int from = Math.max(0, at - 20);
+        List<Iptv.Channel> list = sibs.subList(from, sibs.size());   // this category, then the country's other ones; the strip adds cards as it is scrolled
         Iptv.Channel me = sibs.get(at);
         shelf(App.t(R.string.player_channels) + "  \u00B7  " + Home.groupName(me.cats[0]) + (me.country.isEmpty() ? "" : "  \u00B7  " + me.country), list.size(), 0,
             i -> new String[]{list.get(i).name, list.get(i).logo}, i -> { if (list.get(i) != me) playChannel(list.get(i)); }, at - from);
@@ -257,54 +257,62 @@ public class PlayerActivity extends Activity {
         row.setClipChildren(false);
         row.setPadding(dp(20), dp(6), dp(20), dp(4));
         int w = dp(posters ? 92 : 128), h = dp(posters ? 138 : 72);
-        View start = null;
-        for (int i = 0; i < n; i++) {
-            final int at = i;
-            String[] it = item.apply(i);
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            FrameLayout art = new FrameLayout(this);
-            art.setBackground(Home.rounded(0xFF282431, dp(10)));
-            art.setClipToOutline(true);
-            ImageView img = new ImageView(this);
-            img.setScaleType(kind == 0 ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
-            if (kind == 0) img.setPadding(dp(14), dp(10), dp(14), dp(10));
-            art.addView(img, new FrameLayout.LayoutParams(-1, -1));
-            if (it[1] != null && it[1].startsWith("http")) loadStill(img, it[1], w);
-            card.addView(art, new LinearLayout.LayoutParams(w, h));
-            TextView name = new TextView(this);
-            name.setText(it[0]);
-            name.setTextColor(i == current ? Home.ACCENT : Color.WHITE);
-            name.setTextSize(12);
-            name.setSingleLine();
-            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            name.setPadding(dp(2), dp(5), dp(2), 0);
-            name.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);   // readable over a bright picture
-            card.addView(name, new LinearLayout.LayoutParams(w, -2));
-            GradientDrawable ring = Home.rounded(0, dp(10));
-            ring.setStroke(dp(i == current ? 2 : 3), i == current ? Home.ACCENT : Color.WHITE);
-            if (i == current) art.setForeground(ring);
-            card.setFocusable(true);
-            card.setFocusableInTouchMode(App.tv);
-            card.setDefaultFocusHighlightEnabled(false);
-            GradientDrawable white = Home.rounded(0, dp(10));
-            white.setStroke(dp(3), Color.WHITE);
-            card.setOnFocusChangeListener((v, has) -> {
-                art.setForeground(has ? white : at == current ? ring : null);
-                if (has) hs.smoothScrollTo(Math.max(0, v.getLeft() - hs.getWidth() / 2 + w / 2), 0);
-            });
-            card.setOnClickListener(v -> { closePanel(); pick.accept(at); });
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, -2);
-            cp.rightMargin = dp(10);
-            row.addView(card, cp);
-            if (start == null || i == current) start = card;
-        }
+        View[] start = {null};
+        int[] built = {0};
+        java.util.function.IntConsumer[] grow = new java.util.function.IntConsumer[1];
+        // The cards are built a batch at a time: the next batch is added when the remote gets near the last one (a long list stays light)
+        grow[0] = to -> {
+            for (int i = built[0]; i < to; i++) {
+                final int at = i;
+                String[] it = item.apply(i);
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                FrameLayout art = new FrameLayout(this);
+                art.setBackground(Home.rounded(0xFF282431, dp(10)));
+                art.setClipToOutline(true);
+                ImageView img = new ImageView(this);
+                img.setScaleType(kind == 0 ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
+                if (kind == 0) img.setPadding(dp(14), dp(10), dp(14), dp(10));
+                art.addView(img, new FrameLayout.LayoutParams(-1, -1));
+                if (it[1] != null && it[1].startsWith("http")) loadStill(img, it[1], w);
+                card.addView(art, new LinearLayout.LayoutParams(w, h));
+                TextView name = new TextView(this);
+                name.setText(it[0]);
+                name.setTextColor(i == current ? Home.ACCENT : Color.WHITE);
+                name.setTextSize(12);
+                name.setSingleLine();
+                name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                name.setPadding(dp(2), dp(5), dp(2), 0);
+                name.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);   // readable over a bright picture
+                card.addView(name, new LinearLayout.LayoutParams(w, -2));
+                GradientDrawable ring = Home.rounded(0, dp(10));
+                ring.setStroke(dp(i == current ? 2 : 3), i == current ? Home.ACCENT : Color.WHITE);
+                if (i == current) art.setForeground(ring);
+                card.setFocusable(true);
+                card.setFocusableInTouchMode(App.tv);
+                card.setDefaultFocusHighlightEnabled(false);
+                GradientDrawable white = Home.rounded(0, dp(10));
+                white.setStroke(dp(3), Color.WHITE);
+                card.setOnFocusChangeListener((v, has) -> {
+                    art.setForeground(has ? white : at == current ? ring : null);
+                    if (has) hs.smoothScrollTo(Math.max(0, v.getLeft() - hs.getWidth() / 2 + w / 2), 0);
+                    if (has && at >= built[0] - 8 && built[0] < n) grow[0].accept(Math.min(n, built[0] + 60));
+                });
+                card.setOnClickListener(v -> { closePanel(); pick.accept(at); });
+                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, -2);
+                cp.rightMargin = dp(10);
+                row.addView(card, cp);
+                if (start[0] == null || i == current) start[0] = card;
+            }
+            built[0] = to;
+        };
+        grow[0].accept(Math.min(n, Math.max(80, current + 40)));
         hs.addView(row);
         p.addView(hs);
         root.addView(p, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         panel = p;
         shelfOpen = true;
-        if (start != null) { View f = start; f.post(() -> { hs.scrollTo(Math.max(0, f.getLeft() - hs.getWidth() / 2 + w / 2), 0); f.requestFocus(); }); }
+        if (start[0] != null) { View f = start[0]; f.post(() -> { hs.scrollTo(Math.max(0, f.getLeft() - hs.getWidth() / 2 + w / 2), 0); f.requestFocus(); }); }
     }
 
     int dp(float v) { return Home.dp(this, v); }
@@ -542,6 +550,7 @@ public class PlayerActivity extends Activity {
         });
         chipServers = chip(R.drawable.ic_p_servers, () -> pickServer());
         chipSubs = chip(R.drawable.ic_p_subs, () -> pickTrack(player.getCurrentTracks(), C.TRACK_TYPE_TEXT, App.t(R.string.player_subtitles), true));
+        chipDownload = chip(R.drawable.ic_download, this::confirmDownload);
         chipMore = chip(R.drawable.ic_p_tune, this::more);
         chipCast = chip(R.drawable.ic_p_cast, () -> { if (casting != null) openRemote(); else pickTv(); });
         chipRotate = chip(R.drawable.ic_p_fullscreen, () -> setRequestedOrientation(landscape()
@@ -914,6 +923,7 @@ public class PlayerActivity extends Activity {
         String off = App.t(R.string.player_off);
         show(chipSubs, text > 0 || canSearchSubs(), App.t(R.string.player_subs_now, subsOn ? textNow : off));
         float sp = player.getPlaybackParameters().speed;
+        show(chipDownload, canDownload(), App.t(R.string.player_download));
         show(chipMore, true, App.t(R.string.player_more));
         int[] next = episodeStep(1), prev = episodeStep(-1);
         Iptv.Channel up = channelStep(1), dn = channelStep(-1);   // a live channel: the same three buttons move through its category
@@ -1316,6 +1326,14 @@ public class PlayerActivity extends Activity {
         if (Home.holdBack(this, e)) return true;
         if (player == null) return super.dispatchKeyEvent(e);
         if (panel != null) {   // the Episodes list: normal focus keys, Back closes it
+            if (shelfOpen && e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP) {   // Up from the strip at the bottom closes it, the remote goes back to its button
+                if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+                    closePanel();
+                    rowFocus(true);
+                    if (chipEpisodes.getVisibility() == View.VISIBLE) chipEpisodes.requestFocus();
+                }
+                return true;
+            }
             if (e.getKeyCode() == KeyEvent.KEYCODE_BACK) { if (e.getAction() == KeyEvent.ACTION_UP) closePanel(); return true; }
             return super.dispatchKeyEvent(e);
         }
@@ -1521,6 +1539,11 @@ public class PlayerActivity extends Activity {
      * A row reads "name   value"; the one in use has a tick. Rows are the old lists' texts: "Speed · 1x", "720p  ✓".
      */
     void sheet(String title, CharSequence[] items, android.content.DialogInterface.OnClickListener pick) {
+        sheet(title, items, null, pick);
+    }
+
+    /** icons: one drawable id per item (0: none), drawn before its words. */
+    void sheet(String title, CharSequence[] items, int[] icons, android.content.DialogInterface.OnClickListener pick) {
         android.app.Dialog d = new android.app.Dialog(this);
         d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
         boolean wide = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
@@ -1554,6 +1577,14 @@ public class PlayerActivity extends Activity {
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setMinimumHeight(dp(46));
             row.setPadding(dp(14), dp(6), dp(12), dp(6));
+            if (icons != null && icons[i] != 0) {
+                ImageView lead = new ImageView(this);
+                lead.setImageResource(icons[i]);
+                lead.setColorFilter(on ? Home.ACCENT : 0xFF9690A3);
+                LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(dp(22), dp(22));
+                ll.rightMargin = dp(14);
+                row.addView(lead, ll);
+            }
             TextView name = new TextView(this);
             name.setText(split ? m.group(1) : text);
             name.setTextColor(on ? Home.ACCENT : Color.WHITE);
@@ -1610,28 +1641,97 @@ public class PlayerActivity extends Activity {
     void more() {
         List<String> labels = new ArrayList<>();
         List<Runnable> acts = new ArrayList<>();
+        List<Integer> icons = new ArrayList<>();
         labels.add(App.t(R.string.player_speed_now, speedLabel(player.getPlaybackParameters().speed)));
         acts.add(this::pickSpeed);
-        labels.add(App.t(R.string.player_boost_now, boost == 0 ? App.t(R.string.player_off) : App.t(R.string.player_db, boost)));
-        acts.add(this::pickBoost);
-        labels.add(App.t(R.string.player_dialog_now, App.t(voice ? R.string.player_on : R.string.player_off)));
-        acts.add(() -> {
-            voice = !voice;
-            applyBoost(true);
-            refreshChips();
-            say(App.t(voice ? R.string.player_dialog_on_video : R.string.player_dialog_off_video));
-        });
+        icons.add(R.drawable.ic_p_speed);
+        icons.add(R.drawable.ic_p_volume);
+        labels.add(App.t(R.string.player_sound_boost_now, boostLabel(boost), voice == 0 ? App.t(R.string.player_off) : String.valueOf(voice)));
+        acts.add(() -> audioPanel(this, () -> boost, v -> { boost = v; applyBoost(true); refreshChips(); }, () -> voice, v -> { voice = v; applyBoost(true); }, () -> { }));
+        if (canDownload()) {
+            labels.add(App.t(R.string.player_downloads));
+            acts.add(() -> startActivity(new android.content.Intent(this, DownloadsActivity.class)));
+            icons.add(R.drawable.ic_download);
+        }
         labels.add(App.t(R.string.player_zoom_now, App.t(ZOOMS[zoom])));
         acts.add(this::cycleZoom);
+        icons.add(R.drawable.ic_p_zoom);
         labels.add(App.t(R.string.player_debug_now, App.t(debugOn ? R.string.player_on : R.string.player_off)));
         acts.add(() -> setDebug(!debugOn));
+        icons.add(R.drawable.ic_info);
         if (!player.isCurrentMediaItemLive()) {
             labels.add(App.t(R.string.player_restart));
             acts.add(() -> { player.seekTo(0); player.play(); say(App.t(R.string.player_from_start)); });
+            icons.add(R.drawable.ic_p_restart);
         }
         labels.add(App.t(R.string.player_home));
         acts.add(() -> Home.goHome(this));
-        sheet(App.t(R.string.player_more), labels.toArray(new String[0]), (d, i) -> acts.get(i).run());
+        icons.add(R.drawable.ic_p_home);
+        int[] ids = new int[icons.size()];
+        for (int i = 0; i < ids.length; i++) ids[i] = icons.get(i);
+        sheet(App.t(R.string.player_more), labels.toArray(new String[0]), ids, (d, i) -> acts.get(i).run());
+    }
+
+    // ---- Download ----
+
+    /** A page's movie, series or anime (not a live channel, not an IPTV stream, not something already on the device). */
+    boolean canDownload() {
+        String url = String.valueOf(getIntent().getStringExtra("url"));
+        return player != null && !player.isCurrentMediaItemLive() && !getIntent().hasExtra("mime") && url.matches("(?i)https?://.*");
+    }
+
+    /** The file name: "Movie (2024)", or "Show - S01E02 - Episode title" when the episode is known. */
+    String downloadName() {
+        String show = title.getText().toString();
+        int[] pe = pageEpisode();
+        if (seriesInfo != null && pe != null) {
+            String ep = String.format(java.util.Locale.ROOT, "S%02dE%02d", pe[0], pe[1]), epTitle = "";
+            for (Catalog.Episode e : seriesInfo.episodes) if (e.season == pe[0] && e.number == pe[1]) epTitle = e.title;
+            return show + " - " + ep + (epTitle.isEmpty() ? "" : " - " + epTitle);
+        }
+        WebActivity page = WebActivity.active;
+        String year = page != null && page.show != null ? String.valueOf(page.show.year) : "";
+        return show + (year.matches("\\d{4}.*") ? " (" + year.substring(0, 4) + ")" : "");
+    }
+
+    /**
+     * The Download button: looks at the stream first (so the quality and the extension are the real ones), then says which file will be
+     * written, and where, before anything starts.
+     */
+    void confirmDownload() {
+        String url = String.valueOf(getIntent().getStringExtra("url")), headers = getIntent().getStringExtra("headers"), base = downloadName();
+        boolean dash = getIntent().getBooleanExtra("dash", false);
+        androidx.media3.common.Format vf = player.getVideoFormat();
+        int playing = vf == null ? 0 : vf.height;   // when the playlist does not say how tall the picture is
+        say(App.t(R.string.dl_checking));
+        App.io.execute(() -> {
+            Downloads.Plan plan = Downloads.plan(url, headers, dash);
+            if (plan.height == 0) plan.height = playing;
+            runOnUiThread(() -> showConfirm(base, plan, null));
+        });
+    }
+
+    /**
+     * The question itself. The file name and the folder lines can be pressed: each opens its choice and then asks again with the change.
+     * custom: the name the user typed (the extension is added), or null for the one made from the title.
+     */
+    void showConfirm(String base, Downloads.Plan plan, String custom) {
+        if (isFinishing()) return;
+        String name = custom != null ? custom : Downloads.fileBase(base, plan.height);
+        Runnable[] edits = {
+            () -> Subs.pickName(this, name, n -> showConfirm(base, plan, n)),
+            () -> Subs.pickFolder(this, () -> showConfirm(base, plan, custom))};
+        Subs.ask(this, App.t(R.string.dl_confirm_title), new int[]{R.drawable.ic_movie, R.drawable.ic_folder},
+            new String[]{name + "." + plan.ext, Downloads.folderPath()},
+            R.drawable.ic_download, App.t(R.string.player_download), () -> download(name, plan),
+            edits, new String[]{App.t(R.string.dl_name_change), App.t(R.string.dl_folder_change)});
+    }
+
+    void download(String base, Downloads.Plan plan) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 && !App.tv && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 77);   // so the progress shows in the notification shade
+        Downloads.Item it = Downloads.enqueue(getIntent().getStringExtra("url"), getIntent().getStringExtra("headers"), base, getIntent().getBooleanExtra("dash", false), plan);
+        say(App.t(R.string.dl_added, it.name + "." + it.ext));
     }
 
     // ---- Skip intro, recap and credits ----
@@ -1988,21 +2088,27 @@ public class PlayerActivity extends Activity {
 
     // ---- Volume boost ----
 
-    static final int[] BOOSTS = {0, 3, 6, 9, 12};
+    static final int BOOST_MAX = 20;   // both boosts: 0 is off, 20 is the most
 
     /** Settings, Volume boost: the dB every video starts with. */
     static int boostDb() {
-        return App.prefs.getInt("boost", 0);
+        return Math.max(0, Math.min(BOOST_MAX, App.prefs.getInt("boost", 0)));
     }
 
-    /** Settings, Dialog boost: whether every video starts with it. */
-    static boolean dialogBoost() {
-        return App.prefs.getBoolean("dialogBoost", false);
+    /** Settings, Dialog boost: the level every video starts with. 10 is what the old on / off switch meant by On. */
+    static int dialogLevel() {
+        int level = App.prefs.contains("dialogLevel") ? App.prefs.getInt("dialogLevel", 0) : App.prefs.getBoolean("dialogBoost", false) ? 10 : 0;
+        return Math.max(0, Math.min(BOOST_MAX, level));
+    }
+
+    static String boostLabel(int db) {
+        return db == 0 ? App.t(R.string.player_off) : App.t(R.string.player_db, db);
     }
 
     /**
-     * Volume boost: LoudnessEnhancer (raises the level, limits the peaks). Dialog boost: an Equalizer that only CUTS (rumble and
-     * bass down, voices untouched) plus 4 dB of LoudnessEnhancer make-up, so voices come out louder. Positive Equalizer gains are
+     * Volume boost: LoudnessEnhancer (raises the level, limits the peaks). Dialog boost, level 1-20: an Equalizer that only CUTS (rumble
+     * and bass down, voices untouched; the cuts grow with the level up to the device's limit) plus 0.4 dB of LoudnessEnhancer make-up
+     * per level, so voices come out louder. Positive Equalizer gains are
      * avoided on purpose: Android's bundled Equalizer turns the whole output down by its largest boost to avoid clipping, which
      * made "dialog boost" quieter. Effects also move the track to another output path on many devices, so when the last one is
      * switched off the audio output is rebuilt (a new audio session) to go back to the normal path. With both off nothing is
@@ -2013,7 +2119,7 @@ public class PlayerActivity extends Activity {
         if (booster != null) { booster.release(); booster = null; }
         if (voices != null) { voices.release(); voices = null; }
         if (player == null) return;
-        int gain = boost * 100 + (voice ? 400 : 0);   // millibels
+        int gain = boost * 100 + voice * 40;   // millibels
         if (gain == 0) {
             if (had) player.setAudioSessionId(((AudioManager) getSystemService(AUDIO_SERVICE)).generateAudioSessionId());
             return;
@@ -2023,12 +2129,12 @@ public class PlayerActivity extends Activity {
             booster = new android.media.audiofx.LoudnessEnhancer(player.getAudioSessionId());
             booster.setTargetGain(gain);
             booster.setEnabled(true);
-            if (voice) {
+            if (voice > 0) {
                 voices = new android.media.audiofx.Equalizer(0, player.getAudioSessionId());
                 short[] range = voices.getBandLevelRange();
                 for (short b = 0; b < voices.getNumberOfBands(); b++) {
                     int hz = voices.getCenterFreq(b) / 1000;   // reported in milliHertz
-                    int level = hz < 150 ? -900 : hz < 400 ? -500 : hz < 800 ? -150 : hz <= 5000 ? 0 : -200;
+                    int level = (hz < 150 ? -900 : hz < 400 ? -500 : hz < 800 ? -150 : hz <= 5000 ? 0 : -200) * voice / 10;
                     voices.setBandLevel(b, (short) Math.max(range[0], Math.min(range[1], level)));
                 }
                 voices.setEnabled(true);
@@ -2039,16 +2145,21 @@ public class PlayerActivity extends Activity {
         }
     }
 
-    void pickBoost() {
-        int[] dbs = BOOSTS;
-        String[] labels = new String[dbs.length];
-        for (int i = 0; i < dbs.length; i++) labels[i] = (dbs[i] == 0 ? App.t(R.string.player_off) : App.t(R.string.player_db, dbs[i])) + (dbs[i] == boost ? "  \u2713" : "");
-        sheet(App.t(R.string.player_boost_title), labels, (d, i) -> {
-            boost = dbs[i];
-            applyBoost(true);
-            refreshChips();
-            say(boost == 0 ? App.t(R.string.player_boost_off_video) : App.t(R.string.player_boost_on_video, boost));
-        });
+    /**
+     * Volume boost and Dialog boost, each 0-20 with − and +. From Settings they are saved (every video starts with them), from the player
+     * they change this video only; `closed` runs when the panel goes away.
+     */
+    static void audioPanel(android.app.Activity a, java.util.function.IntSupplier boost, java.util.function.IntConsumer setBoost,
+                           java.util.function.IntSupplier level, java.util.function.IntConsumer setLevel, Runnable closed) {
+        LinearLayout body = new LinearLayout(a);
+        body.setOrientation(LinearLayout.VERTICAL);
+        List<Runnable> refresh = new ArrayList<>();
+        Runnable after = () -> { for (Runnable r : refresh) r.run(); };
+        Subs.row(a, body, refresh, App.t(R.string.home_volume_boost), () -> boostLabel(boost.getAsInt()),
+            by -> setBoost.accept(Math.max(0, Math.min(BOOST_MAX, boost.getAsInt() + by))), after);
+        Subs.row(a, body, refresh, App.t(R.string.home_dialog_boost), () -> level.getAsInt() == 0 ? App.t(R.string.player_off) : String.valueOf(level.getAsInt()),
+            by -> setLevel.accept(Math.max(0, Math.min(BOOST_MAX, level.getAsInt() + by))), after);
+        Subs.show(a, App.t(R.string.audio_title), body, App.t(R.string.audio_help), () -> { setBoost.accept(0); setLevel.accept(0); after.run(); }, closed);
     }
 
     // Side-load the file and restart the stream at the same spot with it switched on

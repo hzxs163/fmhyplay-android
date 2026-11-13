@@ -52,12 +52,12 @@ Streaming sites are built for a desktop browser with a mouse. On a TV remote the
 
 **FMHYPlayer**
 - Hands off automatically when a page starts an HLS, DASH or live FLV stream; falls back to the page if the stream cannot be played
-- Icon buttons in two groups: Previous, Next, Episodes on the left; Quality, Audio, Sub / Dub, Servers, Subtitles, More, Cast, Full screen on the right; menus open as a side panel; what is picked shows under the title, and on a TV the button the remote is on shows its name
+- Icon buttons in two groups: Previous, Next, Episodes on the left; Quality, Audio, Sub / Dub, Servers, Subtitles, Download, More, Cast, Full screen on the right; menus open as a side panel; what is picked shows under the title, and on a TV the button the remote is on shows its name
 - Replays the page's Referer, Origin and cookies, so streams that check them still play
 - **Resumes where you stopped on any site or server**, with a Restart button; the place is saved every 10 seconds while you watch, and the subtitles you had on come back
 - Quality list with frame rate (for example 1080p60), audio and subtitle tracks, speed and zoom modes
 - **Servers and Quality buttons that control the site's own player**, including players inside cross-origin iframes
-- **Volume boost** (up to +12 dB) and **Dialog boost** (clearer voices, off until you turn it on in Settings or in the player)
+- **Volume boost** and **Dialog boost** (clearer voices), each from 0 to 20, in Settings or in the player
 - **Debug overlay** (*More, Debug overlay*, off by default): a panel down the right edge with resolution, frame rate, codec and decoder (hardware or software), video and audio bitrate, network speed, buffer, frames shown and dropped, stream type, host, how long the video took to open, and memory, refreshed every second
 - **Subtitles in any language** from OpenSubtitles, converted so every script shows right, remembered per title, optional auto subtitles in your language, and **auto-sync** that lines a file up with the speech; size, position, color, background and timing
 - **Simkl** and **PunchPlay** tracking (optional): what you watch is tracked there, titles you finish are marked watched
@@ -65,9 +65,15 @@ Streaming sites are built for a desktop browser with a mouse. On a TV remote the
 - **Back to Home in one step** from the player (phone: house button, TV: More, Home) and from a website (phone: a house at the top right, TV: Menu, Back to home), or by **holding Back for 3 seconds** on any screen
 - A translucent **loading screen** (title, current step, a cat that spins while it works, jumps when the stream is found and stares when it gets stuck) while the app drives a site, until the player is up; tap it or press Back to see the page
 
+**Downloads**
+- A **Download** button in the player saves the movie, series or anime you are watching: it asks first (file name, folder), names the file like `Title.2024.1080p.FMHYPlay.mp4`, and keeps going in the background with progress in a notification
+- **Several connections** at once (4 by default, 1 to 8 in *Settings, Downloads*), pause and resume, a **Downloads** screen with each file's path, and a folder of your choice under Download, Movies or Documents
+- Plain files and HLS streams (including encrypted ones, and ones whose sound is a separate playlist: it is joined into the MP4); HLS saves get a seek index so the video can be skipped through. DASH, live and protected streams are not downloaded
+
 **Browsing**
 - Home with Continue watching, Favorites, **your country's movies and series first** (by language, from TMDB), then **New and Popular** for Movies, TV and Anime (from Cinemeta and Kitsu)
 - A side rail on a TV, bottom tabs on a phone; pull down to refresh; trailers on title pages
+- A Home banner that changes every 20 seconds through the world's top 5 films and series; lists that keep loading as you scroll
 - **One search** for movies, series, IPTV channels and sites, by typing or by voice
 - A directory of streaming sites that tracks the [FMHY](https://github.com/fmhy/edit) lists; opens a title's own page on about 70 sites and searches the rest for you, then opens the match
 - Anime opens on anime sites only
@@ -85,7 +91,7 @@ Streaming sites are built for a desktop browser with a mouse. On a TV remote the
 **IPTV**
 - More than 11,000 public channels from [iptv-org](https://github.com/iptv-org/iptv), grouped by category and country, with logos
 - A background check hides channels that are offline; your country's channels and its categories come first
-- In the player: **Channel + / −**, Previous / Next and a **Channels strip** move through the channel's category
+- In the player: **Channel + / −**, Previous / Next and a **Channels strip** move through the channel's category and then the country's other ones
 - **Add your own playlist, a single `.m3u8` stream link, an Xtream Codes login or a Stalker portal (MAC address)**; each playlist gets its own row
 - **Category and Language filters** in every channel list, and **pins**: keep a list with its filters (India · News · Hindi) as its own row
 - Favorite channels with a heart; channels also show up in the one search
