@@ -140,6 +140,8 @@ Download the APK for your device from [Releases](https://github.com/fmhyplay/and
 
 Allow installs from your file manager or browser, open the APK, done. On a TV, `adb install -r FMHYPlay-TV-vX.Y.Z.apk` works over the network. Updates install over the old version because releases are signed with the same key. Check a download with `SHA256SUMS.txt` from the release.
 
+**Is it safe?** Yes. All of the code is in this repository, and every release APK is built from it by GitHub Actions. VirusTotal finds nothing: [scan of v2.20.1 for phones](https://www.virustotal.com/gui/file/894edb0ceb42657c3899cd4cb26bc1af1ecac9eb8fe07d5bde93e271e951040f/detection). To check any other file, search its SHA-256 from `SHA256SUMS.txt` on [virustotal.com](https://www.virustotal.com). Google Play Protect may still say *Harmful app blocked* without giving a reason; tap *Install anyway* (under *More details* on some phones).
+
 Requires Android 8.0 (API 26) or newer, arm64 or 32-bit ARM.
 
 ### Fire TV

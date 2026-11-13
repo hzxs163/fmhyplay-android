@@ -36,6 +36,7 @@ adb install -r FMHYPlay-TV-vX.Y.Z.apk</code></pre>
 </ol>
 <p>FMHYPlay then updates itself from inside the app. To cast from your phone to the Fire TV, open FMHYPlay on it once; the Fire TV shows up in the phone's Cast list as <i>Name - FMHYPlay</i>.</p>
 <p>Updates install over the old version, because every release is signed with the same key. You can check a file against <code>SHA256SUMS.txt</code> on the release page.</p>
+<p><b>Is it safe?</b> Yes. All of the code is <a href="https://github.com/fmhyplay/android">on GitHub</a>, and every release APK is built from it by GitHub Actions. VirusTotal finds nothing: <a href="https://www.virustotal.com/gui/file/894edb0ceb42657c3899cd4cb26bc1af1ecac9eb8fe07d5bde93e271e951040f/detection">scan of v2.20.1 for phones</a>. To check any other file, search its SHA-256 from <code>SHA256SUMS.txt</code> on <a href="https://www.virustotal.com">virustotal.com</a>. Google Play Protect may still say <i>Harmful app blocked</i> without giving a reason; tap <i>Install anyway</i> (under <i>More details</i> on some phones).</p>
 <p><b>Updates from inside the app</b> (2.14.0 and later): when a newer release is out, Home shows one line with an <i>Install</i> button. FMHYPlay downloads it from GitHub and Android asks you to confirm; the first time, allow FMHYPlay to install unknown apps. <i>Settings, Check for updates</i> looks right away, and <i>Check automatically</i> turns the automatic check off; it looks every hour and at every boot, even with the app closed.</p>
 
 <h2 id="browse">Browse and play</h2>
@@ -208,6 +209,7 @@ My channels|https://example.com/my-channels.m3u
 
 <h2 id="troubleshooting">Troubleshooting</h2>
 <table><tr><th>Problem</th><th>Try</th></tr>
+<tr><td>Play Protect says "Harmful app blocked"</td><td>Google gives no reason, and <a href="https://www.virustotal.com/gui/file/894edb0ceb42657c3899cd4cb26bc1af1ecac9eb8fe07d5bde93e271e951040f/detection">VirusTotal finds nothing</a>. Tap <i>Install anyway</i> (under <i>More details</i> on some phones). See <a href="#install">Is it safe?</a></td></tr>
 <tr><td>A site does not open</td><td>Turn WARP on, or try a mirror (hold <kbd>OK</kbd> on the site).</td></tr>
 <tr><td>The player does not start</td><td>Press Play on the page first. Some sites start the stream only after a click. Then use the <b>FMHYPlayer</b> button on the site's player.</td></tr>
 <tr><td>"FMHYPlayer could not play this"</td><td>It goes back to the page, which still plays the video itself. Try another server from the page.</td></tr>
