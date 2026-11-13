@@ -956,7 +956,7 @@ public class WebActivity extends Activity {
                 int id = o.optInt("id"), cur = o.optInt("cur", -1);
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
-                    new AlertDialog.Builder(this)
+                    new AlertDialog.Builder(WebActivity.this)
                         .setTitle(title.isEmpty() ? App.t(R.string.web_select) : title)
                         .setSingleChoiceItems(labels, cur, (d, w) -> {
                             d.dismiss();
