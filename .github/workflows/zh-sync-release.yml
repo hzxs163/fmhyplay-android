@@ -127,14 +127,16 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         run: ./build.sh
 
-      # 带版本号的文件名 + 固定文件名的最新版直链（releases/latest/download/FMHYPlay-TV.apk）
+      # 带版本号和运行序号的文件名（FMHYPlay-TV-v2.20.1-R19-zh.apk，R19 就是 Release 的 r19）+ 固定文件名的最新版直链
       - name: Latest copies and checksums
         if: steps.check.outputs.skip != 'true'
         run: |
-          mv "FMHYPlay-TV-v$VERSION_NAME.apk" "FMHYPlay-TV-v$VERSION_NAME-zh.apk"
-          mv "FMHYPlay-Android-v$VERSION_NAME.apk" "FMHYPlay-Android-v$VERSION_NAME-zh.apk"
-          cp "FMHYPlay-TV-v$VERSION_NAME-zh.apk" FMHYPlay-TV.apk
-          cp "FMHYPlay-Android-v$VERSION_NAME-zh.apk" FMHYPlay-Android.apk
+          TV="FMHYPlay-TV-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
+          PHONE="FMHYPlay-Android-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
+          mv "FMHYPlay-TV-v$VERSION_NAME.apk" "$TV"
+          mv "FMHYPlay-Android-v$VERSION_NAME.apk" "$PHONE"
+          cp "$TV" FMHYPlay-TV.apk
+          cp "$PHONE" FMHYPlay-Android.apk
           sha256sum FMHYPlay-*.apk | tee SHA256SUMS.txt
           for f in FMHYPlay-*.apk; do
             "$ANDROID_HOME"/build-tools/35.0.0/apksigner verify --print-certs "$f" | grep -E "Signer #1 certificate SHA-256"
@@ -146,9 +148,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="zh-v$VERSION_NAME-r$GITHUB_RUN_NUMBER"
+          TV="FMHYPlay-TV-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
+          PHONE="FMHYPlay-Android-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
           gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
-            "FMHYPlay-TV-v$VERSION_NAME-zh.apk" \
-            "FMHYPlay-Android-v$VERSION_NAME-zh.apk" \
+            "$TV" "$PHONE" \
             FMHYPlay-TV.apk FMHYPlay-Android.apk SHA256SUMS.txt \
             --title "FMHYPlay $VERSION_NAME 中文版" --notes-file notes.md
           echo "Published $TAG"
