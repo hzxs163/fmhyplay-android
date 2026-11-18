@@ -127,4 +127,5 @@
     <string name="player_unlock">Unlock</string>
     <string name="player_locked">Locked. Tap the lock on the left to unlock.</string>
     <string name="player_auto_up_to">Auto · up to %1$s</string>
+    <string name="player_retry_direct">Trying again without WARP…</string>
 </resources>

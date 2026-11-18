@@ -115,6 +115,7 @@ public class PlayerActivity extends Activity {
     ImageView gestureIcon;
     View gestureFill;                    // the filled part of the indicator's vertical bar
     TextView gestureText;
+    boolean retriedDirect;               // the stream host refused the WARP route once: the second try goes straight out
     boolean locked;                      // the lock on the left edge: taps and Back do nothing until it is tapped again
     ImageView lockBtn;
     final Runnable hideLock = () -> { if (locked) lockBtn.setVisibility(View.GONE); };   // the lock steps out of the way; a touch brings it back
@@ -1108,6 +1109,26 @@ public class PlayerActivity extends Activity {
         });
     }
 
+    /**
+     * The stream host answered 4xx/5xx: some CDNs refuse WARP's shared addresses, so the next try goes straight out.
+     * Same place in the video, and the player keeps its own headers.
+     */
+    void retryDirect() {
+        long at = player == null ? 0 : player.getCurrentPosition();
+        if (at <= 0) at = startedAt;
+        ProxySelector.setDefault(new ProxySelector() {
+            @Override public List<Proxy> select(URI uri) {
+                return Collections.singletonList(Proxy.NO_PROXY);
+            }
+
+            @Override public void connectFailed(URI uri, SocketAddress a, IOException e) { }
+        });
+        if (mediaItem == null) return;
+        player.setMediaItem(mediaItem.build(), Math.max(0, at - 2000));
+        player.prepare();
+        player.play();
+    }
+
     void startPlayer(String url) {
         Log.i(TAG, "stream " + url + " headers " + getIntent().getStringExtra("headers"));
         Map<String, String> headers = new HashMap<>();
@@ -1237,6 +1258,16 @@ public class PlayerActivity extends Activity {
                     } else if (c instanceof androidx.media3.datasource.HttpDataSource.HttpDataSourceException) {
                         Log.w(TAG, "FAILED " + c + " " + ((androidx.media3.datasource.HttpDataSource.HttpDataSourceException) c).dataSpec.uri);
                     } else if (c instanceof androidx.media3.common.ParserException) Log.w(TAG, "FAILED parse " + c.getMessage() + " stream " + getIntent().getStringExtra("url"));
+                }
+                if (!retriedDirect) {
+                    for (Throwable c = e.getCause(); c != null; c = c.getCause()) {
+                        if (c instanceof androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                            retriedDirect = true;
+                            say(App.t(R.string.player_retry_direct));
+                            retryDirect();
+                            return;
+                        }
+                    }
                 }
                 // a channel that fails once stays listed (a stream can be down for a while, or fail on this device only); only the background check hides one
                 Toast.makeText(PlayerActivity.this, App.t(getIntent().hasExtra("mime") ? R.string.player_channel_offline : R.string.player_cant_play, e.getErrorCodeName()),
