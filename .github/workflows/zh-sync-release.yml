@@ -150,7 +150,7 @@ jobs:
           TAG="zh-v$VERSION_NAME-r$GITHUB_RUN_NUMBER"
           TV="FMHYPlay-TV-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
           PHONE="FMHYPlay-Android-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
-          gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
+          gh release create "$TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             "$TV" "$PHONE" \
             FMHYPlay-TV.apk FMHYPlay-Android.apk SHA256SUMS.txt \
             --title "FMHYPlay $VERSION_NAME 中文版" --notes-file notes.md
