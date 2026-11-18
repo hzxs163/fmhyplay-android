@@ -441,7 +441,8 @@ public class WebActivity extends Activity {
                 String scheme = String.valueOf(r.getUrl().getScheme()).toLowerCase();
                 if (scheme.matches("about|data|blob|javascript")) return false;
                 if (scheme.matches("https?")) {
-                    if (adBlockOff() || !r.isForMainFrame() || r.isRedirect() || sameSite(url, v.getUrl()) || sameSite(url, link)) return false;
+                    if (!r.isForMainFrame() || r.isRedirect() || sameSite(url, v.getUrl()) || sameSite(url, link)) return false;
+                    if (adBlockOff()) return true;   // the player needs the ads' scripts, not the jump they try to make
                     toast(App.t(R.string.web_blocked, r.getUrl().getHost()));
                 } else if (url.equals(link)) {
                     openExternal(url);
