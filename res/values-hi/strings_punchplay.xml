@@ -2,7 +2,7 @@
 <resources>
     <string name="punchplay_help">प्लेयर में देखी गई फ़िल्मों और एपिसोड को PunchPlay (एक फ़्री ट्रैकर) पर देखा हुआ मार्क करता है। फ़िल्में, टीवी शो या एनीमे टैब से खोले गए टाइटल के लिए।</string>
     <string name="punchplay_disconnect_title">PunchPlay डिस्कनेक्ट करें?</string>
-    <string name="punchplay_disconnect_msg">FMHYPlay, PunchPlay को आपकी देखी चीज़ें बताना बंद कर देगा। आपकी PunchPlay हिस्ट्री बनी रहेगी।</string>
+    <string name="punchplay_disconnect_msg">AnantPlay, PunchPlay को आपकी देखी चीज़ें बताना बंद कर देगा। आपकी PunchPlay हिस्ट्री बनी रहेगी।</string>
     <string name="punchplay_connect">PunchPlay कनेक्ट करें</string>
     <string name="punchplay_offline">PunchPlay तक नहीं पहुंच पा रहे। WARP जांचें और फिर से कोशिश करें।</string>
     <string name="punchplay_connected">PunchPlay कनेक्ट हो गया</string>

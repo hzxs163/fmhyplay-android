@@ -8,11 +8,8 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -22,21 +19,12 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** FMHY's starred streaming sites (from its video page) plus the user's own sites. */
+/** The streaming sites of the "sites" sources the user added (Settings, Sources), merged, plus the user's own sites. */
 final class Sites {
-    static final String SOURCE = "https://raw.githubusercontent.com/fmhy/edit/main/docs/video.md";
-    static final String SOURCE_LANG = "https://raw.githubusercontent.com/fmhy/edit/main/docs/non-english.md";
-    static final long REFRESH = 12L * 3600 * 1000;
-    // "* ⭐ **[Name](url)**, [2](url) - tags" (a pick), "* 🌟 ..." (also a pick) or plain "* [Name](url) - tags"
-    static final Pattern ENTRY = Pattern.compile("^\\*\\s*(⭐|🌟|🌐)?\\s*(?:\\*\\*)?\\[([^\\]]+)\\]\\((https?://[^)\\s]+)\\)(?:\\*\\*)?(.*)$");
-    static final Pattern ANY_LINK = Pattern.compile("\\[[^\\]]*\\]\\((https?://[^)\\s]+)\\)");
-    static final Pattern LINK = Pattern.compile("\\[[^\\]]*\\]\\([^)]*\\)");
-    // FMHY's own pages, wikis and GitHub/Telegram/Discord links are references, not sites to watch on
-    static final Pattern INTERNAL = Pattern.compile("(?i)^https?://(?:www\\.)?(?:reddit\\.com/r/freemediaheckyeah|fmhy\\.|rentry\\.(?:co|org)/fmhy|github\\.com|raw\\.githubusercontent\\.com|gist\\.github\\.com|t\\.me/|discord\\.gg)");
     static final int ROW_MAX = 14;
 
     static final class Site {
-        String name, url, tags = "", group = "";   // group = the FMHY section it came from
+        String name, url, tags = "", group = "";   // group = the section of its list it came from
         List<String> tagList = new ArrayList<>();
         final List<String> mirrors = new ArrayList<>();
         boolean pick, index;
@@ -44,16 +32,28 @@ final class Sites {
 
     private static org.json.JSONObject deeplinks;
 
-    /** deeplinks.json: host -> {movie, tv} URL templates with {tmdb} / {imdb}. Not part of the app: it comes with the source list ("@deeplinks|url"). */
+    /** Title links: host -> {movie, tv, episode, anime} URL templates, merged from every "deeplinks" source (the first added wins a host). */
     private static synchronized org.json.JSONObject deeplinks() {
         if (deeplinks == null) {
-            try {
-                deeplinks = new org.json.JSONObject(readAll(new FileInputStream(new File(App.app.getFilesDir(), "deeplinks.json"))));
-            } catch (Exception e) {
-                deeplinks = new org.json.JSONObject();
+            deeplinks = new org.json.JSONObject();
+            for (Sources.Source src : Sources.added(Sources.DEEPLINKS)) {
+                try {
+                    org.json.JSONObject o = new org.json.JSONObject(Sources.read(Sources.data(src)));
+                    for (java.util.Iterator<String> it = o.keys(); it.hasNext(); ) {
+                        String host = it.next();
+                        if (!deeplinks.has(host)) deeplinks.put(host, o.get(host));
+                    }
+                } catch (JSONException ignored) { }
             }
         }
         return deeplinks;
+    }
+
+    /** Sites that check fetch and friends as they start, so frame.js hooks them late: the table's "@late" list of host names without the ending. */
+    static String lateHosts() {
+        org.json.JSONArray out = new org.json.JSONArray(), late = deeplinks().optJSONArray("@late");
+        for (int i = 0; late != null && i < late.length(); i++) if (late.optString(i).matches("[a-z0-9-]+")) out.put(late.optString(i));
+        return out.toString();
     }
 
     /** Re-read the table after a refresh brought a new one. */
@@ -109,104 +109,75 @@ final class Sites {
         return path.startsWith("http") ? path : u.getScheme() + "://" + u.getHost() + path;
     }
 
-    /** Category title -> sites, in display order. */
-    // Parsed once per file version: every tab asks for these, and parsing 100 KB of markdown each time made tab switches lag
+    /** Row -> sites and language -> sites, in display order. Parsed once per file version: every tab asks for these. */
     static Map<String, List<Site>> loaded, langs;
-    static long loadedAt, langsAt;
+    static long loadedAt = -1;
 
-    static long stamp(String name) {
-        File f = new File(App.app.getFilesDir(), name);
-        return f.lastModified() + f.length();
+    static long stamp() {
+        long n = 0;
+        for (Sources.Source src : Sources.added(Sources.SITES)) {
+            File f = Sources.data(src);
+            n = n * 31 + f.lastModified() + f.length() + src.url.hashCode();
+        }
+        return n;
     }
 
+    static synchronized void ensure() {
+        long now = stamp();
+        if (loaded != null && now == loadedAt) return;
+        loaded = new LinkedHashMap<>();
+        langs = new LinkedHashMap<>();
+        for (String c : Cats.ORDER) loaded.put(c, new ArrayList<>());
+        for (Sources.Source src : Sources.added(Sources.SITES)) parse(Sources.read(Sources.data(src)), loaded, langs);
+        loaded.values().removeIf(List::isEmpty);
+        langs.values().removeIf(List::isEmpty);
+        loadedAt = now;
+    }
+
+    /** Row title (Cats) -> sites. Empty until a sites source is added and downloaded. */
     static synchronized Map<String, List<Site>> load() {
-        long now = stamp(VIDEO_FILE);
-        if (loaded == null || now != loadedAt) { loaded = parseSites(); loadedAt = now; }
+        ensure();
         return loaded;
     }
 
-    static Map<String, List<Site>> parseSites() {
-        Map<String, List<Site>> out = new LinkedHashMap<>();
-        for (String c : Cats.ORDER) out.put(c, new ArrayList<>());
-        String section = "";
-        for (String line : markdown().split("\n")) {
-            if (line.startsWith("#")) {
-                section = line.replaceAll("^[#\\s►▷]+", "").trim();
-                continue;
-            }
-            Site s = entry(line, section);
-            if (s == null) continue;
-            for (String cat : Cats.of(section, s.tagList)) if (!has(out.get(cat), s.url)) out.get(cat).add(s);
-        }
-        for (List<Site> list : out.values()) {
-            // Picks first, then the rest, then FMHY's lists of more sites; FMHY's own order inside each group
-            List<Site> picks = new ArrayList<>(), rest = new ArrayList<>(), indexes = new ArrayList<>();
-            for (Site s : list) (s.pick ? picks : s.index ? indexes : rest).add(s);
-            list.clear();
-            list.addAll(picks);
-            list.addAll(rest);
-            list.addAll(indexes);
-        }
-        out.values().removeIf(List::isEmpty);
-        return out;
-    }
-
-    /** One FMHY list line -> a Site, or null if it isn't a site entry. */
-    static Site entry(String line, String group) {
-        Matcher m = ENTRY.matcher(line.trim());
-        if (!m.find() || INTERNAL.matcher(m.group(3)).find()) return null;
-        Site s = new Site();
-        s.index = "🌐".equals(m.group(1));
-        s.pick = m.group(1) != null && !s.index;
-        s.name = m.group(2).replaceAll("[\\u2060\\u200b]", "").trim();
-        s.url = m.group(3);
-        // Everything before " - " is the site plus its mirrors; after it come tags and Discord/GitHub links
-        String rest = m.group(4);
-        int dash = rest.indexOf(" - ");
-        String head = dash >= 0 ? rest.substring(0, dash) : rest, tail = dash >= 0 ? rest.substring(dash + 3) : "";
-        Matcher mm = ANY_LINK.matcher(head);
-        while (mm.find()) if (!INTERNAL.matcher(mm.group(1)).find() && !mm.group(1).equals(s.url)) s.mirrors.add(mm.group(1));
-        for (String t : LINK.matcher(tail).replaceAll("").split("/")) {
-            String c = t.replaceAll("[*_`]", "").trim();
-            if (!c.isEmpty() && !c.equals(",") && !c.equals("↪️")) s.tagList.add(c);
-        }
-        s.tags = String.join(" · ", s.tagList);
-        s.group = group;
-        return s;
-    }
-
-    /** Language -> its streaming sites, from FMHY's non-English page ("# ► Spanish / Español" > "## ▷ Streaming"). */
+    /** Language -> its streaming sites. */
     static synchronized Map<String, List<Site>> languages() {
-        long now = stamp(LANG_FILE);
-        if (langs == null || now != langsAt) { langs = parseLanguages(); langsAt = now; }
+        ensure();
         return langs;
     }
 
-    static Map<String, List<Site>> parseLanguages() {
-        Map<String, List<Site>> out = new LinkedHashMap<>();
-        String lang = null;
-        boolean streaming = false;
-        for (String line : read(LANG_FILE, "fmhy-nonenglish.md").split("\n")) {
-            if (line.startsWith("# ")) {
-                lang = line.replaceAll("^[#\\s►▷]+", "").split(" / ")[0].trim();
-                streaming = false;
-            } else if (line.startsWith("#")) {
-                streaming = line.replaceAll("^[#\\s►▷]+", "").trim().toLowerCase().startsWith("streaming");
-            } else if (lang != null && streaming) {
-                Site s = entry(line, lang);
-                if (s == null) continue;
-                if (!out.containsKey(lang)) out.put(lang, new ArrayList<>());
-                if (!has(out.get(lang), s.url)) out.get(lang).add(s);
+    /** One sites.json ({"rows": {"movies": [...], ...}, "languages": {"Spanish": [...]}}) merged in; an address already there keeps its place. */
+    static void parse(String json, Map<String, List<Site>> rows, Map<String, List<Site>> langs) {
+        try {
+            JSONObject o = new JSONObject(json);
+            JSONObject r = o.optJSONObject("rows");
+            for (int i = 0; r != null && i < Cats.ORDER.length; i++) merge(r.optJSONArray(Cats.KEYS[i]), rows.get(Cats.ORDER[i]));
+            JSONObject l = o.optJSONObject("languages");
+            for (java.util.Iterator<String> it = l == null ? null : l.keys(); it != null && it.hasNext(); ) {
+                String lang = it.next();
+                if (!langs.containsKey(lang)) langs.put(lang, new ArrayList<>());
+                merge(l.optJSONArray(lang), langs.get(lang));
             }
+        } catch (JSONException ignored) { }
+    }
+
+    static void merge(JSONArray a, List<Site> into) {
+        for (int i = 0; a != null && i < a.length(); i++) {
+            JSONObject o = a.optJSONObject(i);
+            if (o == null) continue;
+            Site s = new Site();
+            s.name = o.optString("name").trim();
+            s.url = o.optString("url").trim();
+            if (s.name.isEmpty() || !s.url.matches("(?i)https?://.+") || has(into, s.url)) continue;
+            JSONArray m = o.optJSONArray("mirrors"), t = o.optJSONArray("tags");
+            for (int j = 0; m != null && j < m.length(); j++) if (m.optString(j).matches("(?i)https?://.+")) s.mirrors.add(m.optString(j));
+            for (int j = 0; t != null && j < t.length(); j++) if (!t.optString(j).isEmpty()) s.tagList.add(t.optString(j));
+            s.tags = String.join(" · ", s.tagList);
+            s.group = o.optString("group");
+            s.pick = o.optBoolean("pick");
+            s.index = o.optBoolean("index");
+            into.add(s);
         }
-        for (List<Site> list : out.values()) {
-            List<Site> picks = new ArrayList<>(), rest = new ArrayList<>();
-            for (Site s : list) (s.pick ? picks : rest).add(s);
-            list.clear();
-            list.addAll(picks);
-            list.addAll(rest);
-        }
-        return out;
     }
 
     /** Every site we know (all rows and languages), once each, for search. */
@@ -222,51 +193,6 @@ final class Sites {
     static boolean has(List<Site> list, String url) {
         for (Site s : list) if (s.url.equals(url)) return true;
         return false;
-    }
-
-    static final String VIDEO_FILE = "fmhy-video.md", LANG_FILE = "fmhy-nonenglish.md";
-
-    static File cache() {
-        return new File(App.app.getFilesDir(), VIDEO_FILE);
-    }
-
-    static String markdown() {
-        return read(VIDEO_FILE, VIDEO_FILE);
-    }
-
-    /** The downloaded copy if there is one, else the one bundled in the app. */
-    static String read(String cacheName, String asset) {
-        File f = new File(App.app.getFilesDir(), cacheName);
-        try (InputStream in = f.exists() ? new FileInputStream(f) : App.app.getAssets().open(asset)) {
-            return readAll(in);
-        } catch (IOException e) {
-            return "";
-        }
-    }
-
-    static boolean stale() {
-        return System.currentTimeMillis() - cache().lastModified() > REFRESH;
-    }
-
-    /** Downloads the latest FMHY pages; true if either changed. Call off the main thread. */
-    static boolean refresh() {
-        boolean video = fetch(SOURCE, VIDEO_FILE, "Streaming Sites");
-        boolean lang = fetch(SOURCE_LANG, LANG_FILE, "► ");
-        return video || lang;
-    }
-
-    static boolean fetch(String url, String cacheName, String mustContain) {
-        try {
-            String md = readAll(Warp.open(url).getInputStream());
-            if (!md.contains(mustContain)) return false;
-            boolean changed = !md.equals(read(cacheName, cacheName));
-            try (FileOutputStream out = new FileOutputStream(new File(App.app.getFilesDir(), cacheName))) {
-                out.write(md.getBytes(StandardCharsets.UTF_8));
-            }
-            return changed;
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     static String readAll(InputStream in) throws IOException {
@@ -333,7 +259,7 @@ final class Sites {
         return false;
     }
 
-    /** Adds or removes; name and tags are kept so a favorite survives FMHY dropping the site. */
+    /** Adds or removes; name and tags are kept so a favorite survives its list dropping the site. */
     static void toggleFavorite(Site site) {
         try {
             JSONArray a = new JSONArray(App.prefs.getString("favs", "[]")), kept = new JSONArray();

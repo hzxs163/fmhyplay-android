@@ -22,10 +22,8 @@
     <string name="player_speed">Kecepatan</string>
     <string name="player_speed_now">Kecepatan · %1$s</string>
     <string name="player_zoom_fit">Pas</string>
-    <string name="player_zoom_fill">Penuh</string>
+    <string name="player_zoom_fill">Pangkas</string>
     <string name="player_zoom_stretch">Regang</string>
-    <string name="player_zoom_16_9">16:9</string>
-    <string name="player_zoom_4_3">4:3</string>
     <string name="player_zoom_now">Zoom · %1$s</string>
     <string name="player_debug_now">Overlay debug: %1$s</string>
     <string name="player_zoom_say">Zoom: %1$s</string>
@@ -34,7 +32,7 @@
     <string name="player_full_screen">Layar penuh</string>
     <string name="player_subs_file">Subtitle %1$d (%2$s)</string>
     <string name="player_channel_offline">Saluran sedang offline (%1$s)</string>
-    <string name="player_cant_play">FMHYPlayer tidak bisa memutar ini (%1$s), kembali ke halaman</string>
+    <string name="player_cant_play">AnantPlayer tidak bisa memutar ini (%1$s), kembali ke halaman</string>
     <string name="player_resumed_at">Dilanjutkan dari %1$s</string>
     <string name="player_live">LIVE</string>
     <string name="player_no_servers">Tidak ada daftar server di halaman ini</string>
@@ -90,9 +88,9 @@
     <string name="cast_channel">Transmisi</string>
     <string name="cast_ready">Siap menerima transmisi dari ponselmu</string>
     <string name="cast_sending_video">Mengirim video ke TV-mu</string>
-    <string name="cast_label_app">%1$s - FMHYPlay (Disarankan)</string>
+    <string name="cast_label_app">%1$s - AnantPlay (Disarankan)</string>
     <string name="cast_label_chromecast">%1$s - Chromecast</string>
-    <string name="cast_blocked">TV tidak membukanya. Di TV: FMHYPlay, Setelan, Transmisikan ke TV ini, lalu izinkan</string>
+    <string name="cast_blocked">TV tidak membukanya. Di TV: AnantPlay, Setelan, Transmisikan ke TV ini, lalu izinkan</string>
     <string name="cast_tv_cant_open">TV tidak bisa membuka video ini</string>
     <string name="cast_volume_down">Volume −</string>
     <string name="cast_volume_up">Volume +</string>
@@ -122,4 +120,5 @@
     <string name="player_more">Lainnya</string>
     <string name="player_channels">Saluran</string>
     <string name="player_more_watch">Tontonan lain</string>
+    <string name="player_auto_up_to">Otomatis · hingga %1$s</string>
 </resources>

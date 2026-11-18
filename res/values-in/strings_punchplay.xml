@@ -2,7 +2,7 @@
 <resources>
     <string name="punchplay_help">Menandai film dan episode yang kamu tonton di pemutar sebagai sudah ditonton di PunchPlay, pelacak gratis. Untuk judul yang dibuka dari Film, Serial TV, atau Anime.</string>
     <string name="punchplay_disconnect_title">Putuskan PunchPlay?</string>
-    <string name="punchplay_disconnect_msg">FMHYPlay berhenti memberi tahu PunchPlay apa yang kamu tonton. Riwayat PunchPlay kamu tetap ada.</string>
+    <string name="punchplay_disconnect_msg">AnantPlay berhenti memberi tahu PunchPlay apa yang kamu tonton. Riwayat PunchPlay kamu tetap ada.</string>
     <string name="punchplay_connect">Hubungkan PunchPlay</string>
     <string name="punchplay_offline">Tidak bisa menjangkau PunchPlay. Periksa WARP lalu coba lagi.</string>
     <string name="punchplay_connected">PunchPlay terhubung</string>

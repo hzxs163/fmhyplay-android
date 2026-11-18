@@ -186,4 +186,13 @@ final class PlayerStats implements AnalyticsListener {
     static String stateName(int state) {
         return state == Player.STATE_BUFFERING ? "BUFFERING" : state == Player.STATE_READY ? "READY" : state == Player.STATE_ENDED ? "ENDED" : "IDLE";
     }
+
+    /**
+     * How much of the stream the player keeps ahead, in bytes. It sits in the app's heap, and the player's own figure (144 MB) is
+     * more than a small TV's whole heap (80 MB on a 1 GB one: it stayed full and frames were skipped while memory was cleared).
+     * A quarter of the heap, never under 12 MB (a few seconds of 1080p) or over the player's own figure.
+     */
+    static int bufferBytes(long heap) {
+        return (int) Math.max(12L << 20, Math.min(heap / 4, 144L << 20));
+    }
 }

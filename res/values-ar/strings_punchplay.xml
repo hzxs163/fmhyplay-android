@@ -2,7 +2,7 @@
 <resources>
     <string name="punchplay_help">يحدّد الأفلام والحلقات التي تشاهدها في المشغّل كمُشاهَدة على PunchPlay، وهو متتبّع مجاني. للعناوين المفتوحة من أفلام أو مسلسلات أو أنمي.</string>
     <string name="punchplay_disconnect_title">قطع الاتصال بـ PunchPlay؟</string>
-    <string name="punchplay_disconnect_msg">سيتوقف FMHYPlay عن إخبار PunchPlay بما تشاهده. يبقى سجلك على PunchPlay.</string>
+    <string name="punchplay_disconnect_msg">سيتوقف AnantPlay عن إخبار PunchPlay بما تشاهده. يبقى سجلك على PunchPlay.</string>
     <string name="punchplay_connect">ربط PunchPlay</string>
     <string name="punchplay_offline">تعذّر الوصول إلى PunchPlay. تحقق من WARP وحاول مجددًا.</string>
     <string name="punchplay_connected">تم ربط PunchPlay</string>

@@ -4,6 +4,44 @@
 //   click   = press one of the choices that were listed
 //   episode = press an episode (and its season) in the page's own episode list
 //   play    = start the page's player
+// Autoplay off: a muted or looping video that starts by itself (a hero trailer, a card preview, a background clip) is stopped
+// before it plays, so the page keeps its Play button and the TV does not spend its decoder on video nobody watches.
+// It plays when the user just pressed OK or clicked, when the app starts the page's player (__apAllowPlay), and always on a
+// watch / play page. Only the page itself and trailer hosts' frames: embedded players are left alone.
+(() => {
+  if (window.__apAuto) return;
+  window.__apAuto = 1;
+  if (window !== top && !/(^|\.)(youtube(-nocookie)?\.com|vimeo\.com|imdb\.com|dailymotion\.com)$/i.test(location.hostname)) return;
+  let okAt = 0;
+  const stopped = new Set();   // in a frame: videos held back before the page said whether the user's press made this frame
+  const ok = () => { okAt = Date.now(); };
+  window.__apAllowPlay = ok;
+  // A frame made by a press on the page (its Trailer button) starts with no press of its own: it asks the page how long ago one was
+  addEventListener('message', e => {
+    const d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.fp === 'askedq' && e.source) e.source.postMessage({ fp: 'asked', age: Date.now() - okAt }, '*');
+    else if (d.fp === 'asked' && e.source === parent && d.age < 5000) {   // this frame is what the press asked for: start what was held
+      ok();
+      for (const v of stopped) if (v.isConnected) v.play().catch(() => { });
+      stopped.clear();
+    }
+  });
+  if (window !== top) parent.postMessage({ fp: 'askedq' }, '*');
+  addEventListener('keydown', e => { if (e.isTrusted && /^(Enter| |MediaPlayPause|MediaPlay)$/.test(e.key)) ok(); }, true);
+  for (const t of ['pointerdown', 'click', 'touchstart']) addEventListener(t, e => { if (e.isTrusted) ok(); }, true);
+  const watching = () => /\/(watch|play|player|embed|stream)\b|[?&](play|autoplay)=(1|true)\b/i.test(location.pathname + location.search) && window === top;
+  const unasked = v => (v.muted || v.defaultMuted || v.loop) && Date.now() - okAt > 2000 && !watching();
+  const stop = v => { v.autoplay = false; v.removeAttribute('autoplay'); v.pause(); if (window !== top) stopped.add(v); };
+  document.addEventListener('play', e => { if (e.target instanceof HTMLMediaElement && unasked(e.target)) stop(e.target); }, true);
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    if (!unasked(this)) return play.apply(this, arguments);
+    stop(this);
+    return Promise.reject(new DOMException('Autoplay is off', 'NotAllowedError'));   // what a browser says when it blocks autoplay: sites show their Play button
+  };
+})();
+
 (() => {
   if (window.__fpf) return;
   window.__fpf = 1;
@@ -24,6 +62,7 @@
     return false;
   };
   const click = e => {
+    if (window.__apAllowPlay) window.__apAllowPlay();   // the app pressing an episode, a server or Play: what starts next was asked for
     for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup'])
       e.dispatchEvent(new (t[0] === 'p' ? PointerEvent : MouseEvent)(t, { bubbles: true, cancelable: true, view: window }));
     e.click();
@@ -66,19 +105,35 @@
   // 1b) a "Server(s)" or "Quality" heading with entries under it, even inside a popup that is hidden right now
   //     (hidden entries can still be pressed from script)
   const headRe = /^(servers?|sources?|mirrors?|providers?)$/i, qualRe = /^(quality|qualities|resolution)$/i;
+  // AUDIO (a language list: English, Hindi...) is its own group; SUBTITLES only marks where the audio list ends
+  // (not a plain "Language" heading: that is often the site's own language switcher, whose links leave the page)
+  const audioHeadRe = /^(audio|audio languages?|audio tracks?|dubs?)$/i, subsHeadRe = /^(subtitles?|captions?|cc|languages?)$/i;
   // Text of an entry from its leaf pieces, so "1080p" + "Full HD" reads "1080p Full HD" (works while hidden)
   const textOf = e => [...e.querySelectorAll('*')].filter(c => !c.children.length).map(c => (c.textContent || '').trim()).filter(Boolean).join(' ') || (e.textContent || '').trim();
   // Just the name of an entry ("Lavender" of "Lavender No stream found")
   const firstText = e => [...e.querySelectorAll('*')].filter(c => !c.children.length).map(c => (c.textContent || '').trim()).find(Boolean) || (e.textContent || '').trim();
   const headed = () => {
-    const out = { s: [], q: [] };
-    for (const h of document.querySelectorAll('*')) {
-      if (h.children.length > 1 || h.closest(optSel)) continue;
+    const out = { s: [], q: [], a: [] };
+    const heads = [...document.querySelectorAll('*')].filter(h => {
+      if (h.children.length > 1 || h.closest(optSel)) return false;
       const t = (h.textContent || '').trim();
-      const kind = headRe.test(t) ? 's' : qualRe.test(t) ? 'q' : '';
+      return headRe.test(t) || qualRe.test(t) || audioHeadRe.test(t) || subsHeadRe.test(t);
+    });
+    for (const h of heads) {
+      const t = (h.textContent || '').trim();
+      const kind = headRe.test(t) ? 's' : qualRe.test(t) ? 'q' : audioHeadRe.test(t) ? 'a' : '';
       if (!kind || out[kind].length) continue;
+      // the other lists' headings (not this heading's own wrapper or inner element, which match the same word)
+      const others = heads.filter(o => o !== h && !o.contains(h) && !h.contains(o));
+      const after = (a, b) => !!(a.compareDocumentPosition(b) & 4);   // b comes after a
       for (let c = h.parentElement, i = 0; c && i < 3; c = c.parentElement, i++) {
-        const opts = [...c.querySelectorAll(optSel)].filter(e => leaf(e) && !e.contains(h));
+        // A box that also holds another list's heading (Quality and Server side by side, or one under the other): only what
+        // sits between this heading and the next one. With just "Auto" under Quality (an adaptive stream) the whole box used
+        // to be read, Auto plus every server, as qualities
+        const shared = others.filter(o => c.contains(o)), next = shared.find(o => after(h, o));
+        const mine = e => !shared.length || (after(h, e) && (!next || after(e, next)));
+        // an audio box can hold its subtitle buttons too ("External subtitles", "Upload", "Subtitle style"): languages only, no links
+        const opts = [...c.querySelectorAll(optSel)].filter(e => leaf(e) && !e.contains(h) && mine(e) && !(kind === 'a' && (e.matches('a[href]') || /subtitle|caption|upload|style|sync/i.test(textOf(e)))));
         const names = opts.map(textOf);
         if (opts.length >= 2 && names.every(n => n.length >= 1 && n.length <= 30 && !junk.test(n))) {
           out[kind] = markOdd(opts.slice(0, 24).map((e, j) => ({ label: names[j], on: isOn(e), el: e })));
@@ -89,7 +144,7 @@
     return out;
   };
 
-  // 1c) native <select> dropdowns: custom-styled players (Miruro and others) keep their real choices in <select>s behind the pretty ones.
+  // 1c) native <select> dropdowns: custom-styled players (anime sites especially) keep their real choices in <select>s behind the pretty ones.
   //     AUDIO / LANGUAGE (sub, dub) is its own group ('a'): the language is picked first, then the server (whose list changes with it)
   const capRe = /^(audio|languages?|lang|servers?|sources?|mirrors?|providers?|quality|qualities|resolution)\b/i;
   const audioWords = /^(sub(bed|s)?|dub(bed|s)?|raw|soft-?sub|hard-?sub|multi(-audio)?|original)$/i;
@@ -132,7 +187,7 @@
   };
   const combos = async () => {
     const out = { s: [], a: [], q: [] };
-    for (const kind of ['a', 's']) {   // not quality: FMHYPlayer picks it, and opening that menu shows on screen
+    for (const kind of ['a', 's']) {   // not quality: AnantPlayer picks it, and opening that menu shows on screen
       const b = comboBtn(kind);
       if (!b) continue;
       const before = new Set(visibleOptions());
@@ -245,7 +300,7 @@
     if (it.el && document.contains(it.el)) { click(it.el); return; }
     // The page re-drew its list while it was paused: find the entry again by its name
     if (it.el) {
-      const fresh = (it.kind === 'a' ? audioToggles() : headed()[it.kind === 'q' ? 'q' : 's']).find(x => x.label === it.label);
+      const fresh = (it.kind === 'a' ? headed().a.concat(audioToggles()) : headed()[it.kind === 'q' ? 'q' : 's']).find(x => x.label === it.label);
       if (fresh) { click(fresh.el); return; }
     }
     if (it.settings) {
@@ -281,18 +336,18 @@
   const report = (url, dash) => {
     try {
       const u = new URL(url, location.href);
-      window.FMHY && FMHY.stream(u.href, !!dash, location.href, u.origin !== location.origin ? location.origin : '');
+      window.AnantPlay && AnantPlay.stream(u.href, !!dash, location.href, u.origin !== location.origin ? location.origin : '');
     } catch (e) { }
   };
   const sniff = (url, head) => {
     if (/^\s*#EXTM3U/.test(head)) report(url, false);
     else if (/^\s*(<\?xml[^>]*>\s*)?<MPD[\s>]/.test(head)) report(url, true);
   };
-  // The watch goes in before the page's scripts run: players often keep their own copy of fetch from the start (AnimeX's).
+  // The watch goes in before the page's scripts run: players often keep their own copy of fetch from the start.
   // A few sites check, as they start, that fetch and friends are the browser's own and refuse to run otherwise
-  // (StreamCorner, from a fresh frame): there it goes in once the start-up scripts have run.
-  // ponytail: a list of such sites; add a host here when a site shows a blank page and "Uncaught Error" in its console
-  const strict = /(^|\.)(streamcorner|streamninja)\./i.test(location.hostname);
+  // (checked from a fresh frame): there it goes in once the start-up scripts have run. Which sites: the title-links source's
+  // "@late" list (host names without the ending), which the app puts in window.__apLate before this script.
+  const strict = (window.__apLate || []).some(h => (location.hostname.toLowerCase() + '.').includes('.' + h + '.') || location.hostname.toLowerCase().startsWith(h + '.'));
   const hook = () => {
   try {
     const xo = XMLHttpRequest.prototype.open;
@@ -425,23 +480,41 @@
     return false;
   };
 
-  const up = m => window === top ? (window.FMHY && FMHY.servers(JSON.stringify(m.items))) : parent.postMessage(m, '*');
+  // While the stream plays in the app's player the page's own player stays stopped ({fp:'pause', hold}): playing underneath it
+  // kept downloading, and back on the page it started again and was handed over again, in a loop. A press on the page (OK, a
+  // tap) frees it, and so does the app when it switches a server or episode there (release, play).
+  let hold = false;
+  document.addEventListener('play', e => { if (hold && e.target instanceof HTMLMediaElement) e.target.pause(); }, true);
+  const held = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    if (!hold) return held.apply(this, arguments);
+    this.pause();
+    return Promise.reject(new DOMException('Playing in AnantPlayer', 'NotAllowedError'));
+  };
+  const free = () => { if (!hold) return; hold = false; if (window === top) down({ fp: 'release' }); };
+  addEventListener('keydown', e => { if (e.isTrusted && /^(Enter| |MediaPlayPause|MediaPlay)$/.test(e.key)) free(); }, true);
+  for (const t of ['pointerdown', 'touchstart']) addEventListener(t, e => { if (e.isTrusted) free(); }, true);
+
+  const up = m => window === top ? (window.AnantPlay && AnantPlay.servers(JSON.stringify(m.items), m.gen | 0)) : parent.postMessage(m, '*');
   const down = m => { for (let i = 0; i < frames.length; i++) try { frames[i].postMessage(m, '*'); } catch (x) { } };
   addEventListener('message', async e => {
     const d = e.data;
     if (!d || typeof d !== 'object' || !d.fp) return;
-    if (d.fp === 'pause') { document.querySelectorAll('video,audio').forEach(m => m.pause()); down(d); }
+    if (d.fp === 'pause') { if (d.hold) hold = true; document.querySelectorAll('video,audio').forEach(m => m.pause()); down(d); }
+    else if (d.fp === 'release') { hold = false; down(d); }
     else if (d.fp === 'servers') {
       // the top frame looks first, then tells its frames whether to open menus (it found no server list itself) or not
       if (window !== top) down(d);
       const deep = window === top || d.deep !== false;
       const h = headed();
       let ns = selects();
-      if (ns.a.length < 2 && ns.s.length < 2 && deep) {   // no <select>s: the phone layout's comboboxes
+      if (ns.a.length < 2 && ns.s.length < 2 && !(h.a.length >= 2 && h.s.length >= 2) && deep) {   // no <select>s: the phone layout's comboboxes
         const c = await combos();
         ns = { s: ns.s.length >= 2 ? ns.s : c.s, a: ns.a.length >= 2 ? ns.a : c.a, q: ns.q.length ? ns.q : c.q };
       }
-      if (ns.a.length < 2) ns.a = audioToggles();
+      // an AUDIO heading's own list (English, Hindi...) beats a guess from a menu that also holds the subtitle languages
+      if (h.a.length >= 2) ns.a = h.a;
+      else if (ns.a.length < 2) ns.a = audioToggles();
       // a dropdown that is labelled Server / Source is the most reliable list; guessing from the look of buttons comes after it
       let sv = ns.s.length >= 2 ? ns.s : markOdd(onScreen());
       if (!distinct(sv)) sv = h.s;
@@ -451,14 +524,22 @@
       const qs = h.q.length ? h.q : ns.q;
       items = sv.map(x => Object.assign(x, { kind: 's' })).concat(qs.map(x => Object.assign(x, { kind: 'q' })))
         .concat(ns.a.length >= 2 ? ns.a.map(x => Object.assign(x, { kind: 'a' })) : []);
-      if (items.length) up({ fp: 'reply', items: items.map((it, i) => ({ k: fid + ':' + i, label: it.label, on: it.on, kind: it.kind })) });
-      if (window === top) down({ fp: 'servers', deep: sv.length < 2 });
-      if (window === top && window.FMHY) FMHY.scanDone();
+      const tries = d.tries || 0;
+      if (window === top && !tries) down({ fp: 'servers', gen: d.gen, deep: sv.length < 2 });   // the frames look once, right away
+      // Nothing yet, and the player is in the page itself: one that builds its menus a moment after its stream starts (Bingr) is
+      // looked at again, twice, before the app is told the scan is done and hands the stream over (it waits up to 3 s for this).
+      // A page whose player is in a frame has nothing to wait for here
+      if (window === top && !items.length && tries < 2 && document.querySelector('video')) { await wait(800); postMessage({ fp: 'servers', gen: d.gen, tries: tries + 1 }, '*'); return; }
+      // the page always answers, also with nothing: the lists of an earlier scan must not outlive it (their entries are gone)
+      if (items.length || window === top) up({ fp: 'reply', gen: d.gen, items: items.map((it, i) => ({ k: fid + ':' + i, label: it.label, on: it.on, kind: it.kind })) });
+      if (window === top && window.AnantPlay) AnantPlay.scanDone();
     } else if (d.fp === 'episode') {
       down(d);
-      if (await pickEpisode(d.s, d.e) && window.FMHY) FMHY.episodeFound();
+      if (await pickEpisode(d.s, d.e) && window.AnantPlay) AnantPlay.episodeFound();
     } else if (d.fp === 'play') {
+      hold = false;
       down(d);
+      if (window.__apAllowPlay) window.__apAllowPlay();
       startPlayer();
     } else if (d.fp === 'reply') up(d);
     else if (d.fp === 'click') {
@@ -466,7 +547,7 @@
       // a Sub / Dub kept from an earlier look at this page: the list was read again since, so find it by its name
       if (String(d.k).startsWith(fid + ':') && d.kind === 'a' && (!it || it.label !== d.label)) {
         const b = comboBtn('a');
-        it = selects().a.find(x => x.label === d.label) || audioToggles().find(x => x.label === d.label) || (b ? { combo: b, kind: 'a', label: d.label } : null);
+        it = selects().a.find(x => x.label === d.label) || headed().a.find(x => x.label === d.label) || audioToggles().find(x => x.label === d.label) || (b ? { combo: b, kind: 'a', label: d.label } : null);
       }
       if (it) press(it);
       down(d);
@@ -508,7 +589,7 @@
   addEventListener('touchstart', down, true);
   addEventListener('click', e => {
     const a = e.target instanceof Element && e.target.closest('a[href]');
-    if (a && window.FMHY && /^https?:/.test(a.href)) FMHY.clicked(a.href);
+    if (a && window.AnantPlay && /^https?:/.test(a.href)) AnantPlay.clicked(a.href);
   }, true);
 })();
 
@@ -518,7 +599,7 @@
 (() => {
   if (window !== top || window.__fpNag) return;
   window.__fpNag = 1;
-  const nag = /discord|telegram|reddit|join (us|our)|what'?s new|changelog|release notes|announcement|new update|v\d+\.\d+|donat|support us|patreon|ko-?fi|ad ?block|new domain|bookmark|official (site|domain)|mirror/i;
+  const nag = /discord|telegram|reddit|join (us|our)|what'?s new|good news|issues (are|have been) (fixed|resolved)|is back\b|changelog|release notes|announcement|new update|v\d+\.\d+|donat|support us|patreon|ko-?fi|ad ?block|new domain|bookmark|official (site|domain)|mirror/i;
   const closeWord = /^(got it!?|ok(ay)?|close|dismiss|(maybe )?later|no,? thanks|not now|skip|continue( to site)?|i understand|understood|x|×|✕|✖)$/i;
   const visible = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity > 0.05; };
   const dialogs = () => [...document.querySelectorAll('[role=dialog],[role=alertdialog],[aria-modal=true],dialog[open],[class*=modal i],[class*=popup i],[class*=dialog i],[class*=announce i],[class*=changelog i]')].filter(d => {
@@ -530,7 +611,7 @@
     return r.width * r.height > innerWidth * innerHeight * 0.12 && nag.test((d.innerText || '').slice(0, 2000));
   });
   const sweep = () => {
-    // a first-visit picker that only wants a confirmation (P-Stream's language choice): "Continue to Cinecat"
+    // a first-visit picker that only wants a confirmation (a language choice): "Continue to <site>"
     const go = [...document.querySelectorAll('button')].find(b => /^continue to \S+$/i.test((b.innerText || '').trim()) && visible(b));
     if (go) go.click();
     for (const d of dialogs()) {

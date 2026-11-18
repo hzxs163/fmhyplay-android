@@ -12,8 +12,6 @@ build/
 *.apk
 
 # downloaded at build time (scripts/fetch-assets.sh) and built by warp/build.sh
-assets/fmhy-video.md
-assets/fmhy-nonenglish.md
 assets/blocklist.txt
 assets/*.tmp
 jni/

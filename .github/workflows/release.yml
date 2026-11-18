@@ -56,22 +56,22 @@ jobs:
       - name: Release notes
         run: |
           awk -v v="$VERSION_NAME" '/^## /{p = ($2 == v); next} p' CHANGELOG.md > notes.md
-          [ -s notes.md ] || echo "FMHYPlay $VERSION_NAME" > notes.md
+          [ -s notes.md ] || echo "AnantPlay $VERSION_NAME" > notes.md
 
       - name: Build
         run: ./build.sh
 
-      # Fixed names too, so https://github.com/fmhyplay/android/releases/latest/download/FMHYPlay-TV.apk is always the newest
+      # Fixed names too, so https://github.com/AnantPlay/android/releases/latest/download/AnantPlay-TV.apk is always the newest
       # (Fire TV Downloader codes and links point there). The in-app updater only picks the versioned "-TV-" / "-Android-" files.
       - name: Latest copies
         run: |
-          cp "FMHYPlay-TV-v$VERSION_NAME.apk" FMHYPlay-TV.apk
-          cp "FMHYPlay-Android-v$VERSION_NAME.apk" FMHYPlay-Android.apk
+          cp "AnantPlay-TV-v$VERSION_NAME.apk" AnantPlay-TV.apk
+          cp "AnantPlay-Android-v$VERSION_NAME.apk" AnantPlay-Android.apk
 
       - name: Checksums and signer
         run: |
-          sha256sum FMHYPlay-*.apk | tee SHA256SUMS.txt
-          for f in FMHYPlay-*.apk; do
+          sha256sum AnantPlay-*.apk | tee SHA256SUMS.txt
+          for f in AnantPlay-*.apk; do
             "$ANDROID_HOME"/build-tools/35.0.0/apksigner verify --print-certs "$f" | grep -E "Signer #1 certificate SHA-256"
           done
 
@@ -79,5 +79,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" FMHYPlay-*.apk SHA256SUMS.txt \
-            --title "FMHYPlay $VERSION_NAME" --notes-file notes.md
+          gh release create "$GITHUB_REF_NAME" AnantPlay-*.apk SHA256SUMS.txt \
+            --title "AnantPlay $VERSION_NAME" --notes-file notes.md

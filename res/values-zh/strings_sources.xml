@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sources_title">源</string>
+    <string name="sources_hint">AnantPlay 本身不带任何站点或频道。先添加一个索引，再从中挑选你要的源。</string>
+    <string name="sources_index_name">AnantPlay 索引</string>
+    <string name="sources_index_help">AnantPlay 项目持续维护更新的源列表</string>
+    <string name="sources_index_add">添加这个索引</string>
+    <string name="sources_index_added">索引已添加</string>
+    <string name="sources_added">已添加</string>
+    <string name="sources_add">添加</string>
+    <string name="sources_remove_index_title">移除这个索引？</string>
+    <string name="sources_remove_index_msg">%1$s 以及从它添加的所有源都会被移除。</string>
+    <string name="sources_loading">加载中…</string>
+    <string name="sources_unreachable">无法加载，按“确定”重试</string>
+    <string name="sources_unreachable_toast">无法访问，请稍后再试</string>
+    <string name="sources_added_toast">已添加 %1$s</string>
+    <string name="sources_newer">需要更新版本的 AnantPlay</string>
+    <string name="sources_title_links">片名链接</string>
+    <string name="sources_type_sites">站点</string>
+    <string name="sources_type_playlist">频道</string>
+    <string name="sources_type_deeplinks">片名链接</string>
+    <string name="sources_add_index">通过链接添加索引</string>
+    <string name="sources_add_index_help">别人托管的源列表：index.json，或旧版的 sources.txt</string>
+    <string name="sources_none">还没有添加任何源</string>
+    <string name="sources_add_chip">添加源</string>
+    <string name="sources_settings_help">站点、频道和片名链接的来源</string>
+    <string name="sources_count">已添加 %1$d 个</string>
+    <string name="sources_refresh">刷新源</string>
+    <string name="sources_refresh_help">下载每个源的最新副本（每 12 小时也会自动刷新）。</string>
+    <string name="sources_checking">正在检查源…</string>
+    <string name="sources_updated">源已更新</string>
+    <string name="sources_current">源已是最新</string>
+    <string name="sources_notice_title">FMHYPlay 已更名为 AnantPlay</string>
+    <string name="sources_notice_msg">站点和频道现在来自你在“设置 → 源”里挑选的源。你原有的已自动添加。</string>
+    <string name="sources_notice_open">打开“源”</string>
+</resources>

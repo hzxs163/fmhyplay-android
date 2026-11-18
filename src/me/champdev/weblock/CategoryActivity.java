@@ -4,7 +4,7 @@ import android.widget.TextView;
 
 import java.util.List;
 
-/** Every site FMHY lists for one row ("category") or one language, as a grid (picks first). Same cards and menus as Home. */
+/** Every site the sources list for one row ("category") or one language, as a grid (picks first). Same cards and menus as Home. */
 public class CategoryActivity extends Home {
     @Override boolean tabs() { return false; }
 
@@ -26,7 +26,7 @@ public class CategoryActivity extends Home {
         Grid grid = new Grid(col);
         String group = null;
         for (Sites.Site s : sites) {
-            // Picks first, then one block per FMHY section (P-Stream forks, multi-server sites... each with its own heading)
+            // Picks first, then one block per section of the list (P-Stream forks, multi-server sites... each with its own heading)
             String now = s.pick ? App.t(R.string.category_picks) : s.index ? App.t(R.string.category_more_lists) : language != null ? App.t(R.string.category_more_sites) : s.group;
             if (!now.equals(group)) {
                 group = now;

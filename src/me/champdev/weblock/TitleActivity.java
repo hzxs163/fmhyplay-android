@@ -1,5 +1,7 @@
 package me.champdev.weblock;
 
+import android.graphics.Bitmap;
+
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -63,7 +65,11 @@ public class TitleActivity extends Home {
         ImageView img = new ImageView(this);
         img.setScaleType(ImageView.ScaleType.CENTER_CROP);
         poster.addView(img, new FrameLayout.LayoutParams(-1, -1));
-        if (!t.poster.isEmpty() && !t.poster.equals("null")) loadImage(img, t.poster, letter);
+        if (!t.poster.isEmpty() && !t.poster.equals("null")) {
+            Bitmap seen = anySize(t.poster);   // the list's card had it: shown at once, the sharper size follows
+            if (seen != null) show(img, seen, letter);
+            loadImage(img, t.poster, letter);
+        }
         hero.addView(poster, new LinearLayout.LayoutParams(dp(w), dp(w * 3 / 2)));
 
         LinearLayout info = new LinearLayout(this);
@@ -153,6 +159,7 @@ public class TitleActivity extends Home {
         LinearLayout buttons = new LinearLayout(this);
         buttons.setPadding(0, u(4, 2), 0, 0);
         Sites.Site site = chosen();
+        pickedUrl = site == null ? null : site.url;   // worked out once: the site cards below only compare with it
         TextView watch = chip(v -> watch(null));
         watch.setText(bare(site == null ? App.t(R.string.title_no_site) : App.t(R.string.title_watch_on, site.name)));
         watch.setTextColor(0xFFFFFFFF);
@@ -194,6 +201,7 @@ public class TitleActivity extends Home {
 
         // The sites that carry this kind of title: tap one and its own search box is filled in with the title
         List<Sites.Site> sites = options();
+        if (sites.isEmpty()) sourcesNote(Sources.SITES);
         if (!sites.isEmpty()) {
             // one row that scrolls sideways, so the episodes below are a short move away
             // Just "Watch on": the old line also spelled out "tap a site to open <title>", which ran long and wrapped
@@ -301,20 +309,20 @@ public class TitleActivity extends Home {
     }
 
     /**
-     * The sites for this kind of title: your favorites first, then FMHY's list. Anime gets only FMHY's anime streaming sites
+     * The sites for this kind of title: your favorites first, then the sources' sites. Anime gets only dedicated anime sites
      * (favorites included only when they are among them), and the TV ones only if there are none.
      */
     List<Sites.Site> options() {
         List<Sites.Site> row = Sites.load().get(t.anime ? Cats.ANIME : t.series() ? Cats.TV : Cats.MOVIES);
         if (t.anime && row != null) {
-            // FMHY's anime sites only, not the general ones that also carry anime
+            // anime sites only (their list's own anime section), not the general ones that also carry anime
             List<Sites.Site> only = new ArrayList<>();
-            for (Sites.Site s : row) if (s.group.equals("Anime Streaming")) only.add(s);
+            for (Sites.Site s : row) if (s.group.toLowerCase(java.util.Locale.ROOT).contains("anime")) only.add(s);
             if (!only.isEmpty()) row = only;
         }
         if (t.anime && (row == null || row.isEmpty())) row = Sites.load().get(Cats.TV);
         if (row != null) {
-            // the sites that open the title (or episode) directly come first, FMHY's order kept within each half
+            // the sites that open the title (or episode) directly come first, the list's order kept within each half
             String kind = t.anime ? "anime" : t.series() ? "tv" : "movie";
             row = new ArrayList<>(row);
             row.sort(java.util.Comparator.comparing(s -> !Sites.hasLink(s.url, kind)));
@@ -337,9 +345,16 @@ public class TitleActivity extends Home {
         return t.anime ? "watchsite:anime" : "watchsite";
     }
 
+    /** A series: a tap only picks the site, Watch and the episodes below play on it. A movie: the tap plays it there. */
     @Override void openSite(Sites.Site s) {
         App.prefs.edit().putString(siteKey(), s.url).apply();
-        watch(null);   // the same as Watch, on the site just picked: a series starts its first episode, with the loading screen
+        if (t.series()) rebuild(); else watch(null);
+    }
+
+    String pickedUrl;   // the chosen site of this drawing of the page (chosen() sorts every site: once per page, not once per card)
+
+    @Override boolean picked(Sites.Site s) {
+        return s.url.equals(pickedUrl);
     }
 
     // The title's own page when the site is known (by TMDB id), else the site with a search for its name
@@ -351,11 +366,20 @@ public class TitleActivity extends Home {
 
     void watch(Catalog.Episode e) {
         Sites.Site s = chosen();
-        if (s == null) { toast(App.t(R.string.title_no_site_toast)); return; }
-        // A site that has episode pages but no page for the show (most anime sites): Watch starts the first episode
-        // Watch on a series starts its first episode (with the loading screen while the app finds and plays it), on every site
-        if (e == null && t.series())
-            for (Catalog.Episode x : t.episodes) if (e == null || x.season < e.season || (x.season == e.season && x.number < e.number)) e = x;
+        if (s == null) {
+            if (Sources.added(Sources.SITES).isEmpty()) openSources();
+            toast(App.t(Sources.added(Sources.SITES).isEmpty() ? R.string.sources_none : R.string.title_no_site_toast));
+            return;
+        }
+        // Watch on a series carries on where it was left, on any site (the next episode after a finished one), else starts the first,
+        // with the loading screen while the app finds and plays it. A site that has episode pages but no page for the show (most anime sites) needs that.
+        if (e == null && t.series()) {
+            List<int[]> all = new ArrayList<>();
+            for (Catalog.Episode x : t.episodes) all.add(new int[]{x.season, x.number});
+            int[] at = History.resume(History.list(), t.name, all);
+            for (Catalog.Episode x : t.episodes)
+                if (at != null ? x.season == at[0] && x.number == at[1] : e == null || x.season < e.season || (x.season == e.season && x.number < e.number)) e = x;
+        }
         startActivity(withTitle(titleIntent(s))
             .putExtra("season", e == null ? 0 : e.season).putExtra("episode", e == null ? 0 : e.number));
     }

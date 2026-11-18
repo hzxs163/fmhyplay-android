@@ -17,56 +17,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Free IPTV channels from public playlists (iptv-org), plus the playlists you add yourself, kept on disk and refreshed at app start.
- * More playlists come from an optional source list: a text file you point the app at (Settings, Extra source list; by default the
- * org's sources repo). This code carries no playlist of its own. Entries marked 18 are kept apart (a Mature category, off by default).
+ * IPTV channels from the playlist sources the user added (Settings, Sources), plus the playlists they add themselves, kept on disk
+ * and refreshed at app start. This code carries no playlist of its own. Sources marked adult are kept apart (a Mature category, off by default).
  */
 final class Iptv {
-    static final String MAIN = "https://iptv-org.github.io/iptv/index.m3u";
-    static final String LANGUAGES = "https://iptv-org.github.io/iptv/index.language.m3u";   // the same streams grouped by language
-    /** Where the source list comes from until you change it in Settings. */
-    static final String DEFAULT_EXTRAS = "https://raw.githubusercontent.com/fmhyplay/sources/main/sources.txt";
-    private static List<String[]> adultSources;
-
-    /** The link to the source list; empty when you cleared it on purpose. */
-    static String extrasUrl() {
-        return App.prefs.getString("extrasUrl", DEFAULT_EXTRAS);
-    }
-
-    /**
-     * The source list (the file downloaded from the link above), one entry per line:
-     * "label|url" a playlist, "label|url|18" an adult playlist, "@deeplinks|url" a title-page link table. Lines starting with # are notes.
-     * Each result is {label, url, flag}.
-     */
-    static synchronized List<String[]> adultSources() {
-        if (adultSources == null) {
-            adultSources = new ArrayList<>();
-            Set<String> urls = new HashSet<>();
-            for (String line : read("iptv-extras.txt").split("\n")) {
-                String[] f = line.trim().split("\\|", 3);
-                if (f.length < 2 || line.startsWith("#") || f[0].startsWith("@") || !f[1].startsWith("http") || !urls.add(f[1])) continue;
-                adultSources.add(new String[]{f[0], f[1], f.length > 2 ? f[2].trim() : ""});
-            }
-        }
-        return adultSources;
-    }
-
-    static boolean isAdult(String[] src) {
-        return src[2].equals("18");
-    }
-
-    /** The "@name|url" entry of the source list, or "". */
-    static String special(String name) {
-        for (String line : read("iptv-extras.txt").split("\n")) {
-            String[] f = line.trim().split("\\|", 2);
-            if (f.length == 2 && f[0].equals("@" + name) && f[1].startsWith("http")) return f[1];
-        }
-        return "";
-    }
-
     /** Forget what was read so the next look uses the files now on disk. */
     static synchronized void reloadExtras() {
-        adultSources = null;
+        cache = null;
         adultThere = null;
     }
 
@@ -78,16 +35,6 @@ final class Iptv {
         c.setReadTimeout(30000);
         c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Mobile Safari/537.36");
         return Sites.readAll(c.getInputStream());
-    }
-
-    static boolean saveText(String url, String name) {
-        try {
-            String text = download(url);
-            try (FileOutputStream out = new FileOutputStream(file(name))) { out.write(text.getBytes(StandardCharsets.UTF_8)); }
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     static final java.util.regex.Pattern VOD = java.util.regex.Pattern.compile("(?i)\\.(mp4|mkv|avi|mov|wmv|flv|mpg|mpeg|webm|m4v)(\\?|$)");
@@ -105,7 +52,7 @@ final class Iptv {
         String name = "", logo = "", url = "", ua = "", ref = "", country = "", group = "", source = "";
         String playlist = "";   // which of your playlists it came from (its address), "" for the rest
         String[] cats = {"Other"};
-        String[] langs = {};    // languages it broadcasts in (iptv-org channels only), e.g. "Hindi", "English"
+        String[] langs = {};    // languages it broadcasts in (playlists that come with a by-language list only), e.g. "Hindi", "English"
         boolean adult;
     }
 
@@ -116,20 +63,16 @@ final class Iptv {
         return new File(App.app.getFilesDir(), name);
     }
 
+    /** A playlist you added was never downloaded (the sources have their own check, Sources.stale). */
     static boolean stale() {
-        // Also when a newly added extra source has never been downloaded
-        int n = adultSources().size();
-        return System.currentTimeMillis() - file("iptv.m3u").lastModified() > REFRESH || !file("iptv-lang.m3u").exists() || (n > 0 && !file("iptv-adult" + (n - 1) + ".m3u").exists()) || (!extrasUrl().isEmpty() && !file("iptv-extras.txt").exists()) || missingMine();
+        return missingMine();
     }
 
     private static Boolean adultThere;
 
-    /** Is there anything adult in the source list? Without it there is no adult category and no switch for it. */
+    /** Is there anything adult on offer? Without it there is no adult category and no switch for it. */
     static synchronized boolean adultAvailable() {
-        if (adultThere == null) {
-            adultThere = false;
-            for (String[] src : adultSources()) if (isAdult(src)) adultThere = true;
-        }
+        if (adultThere == null) adultThere = Sources.adultListed();
         return adultThere;
     }
 
@@ -141,24 +84,23 @@ final class Iptv {
     /** Every channel on disk (empty until the first download finishes). Adult ones only when the setting allows. */
     static synchronized List<Channel> all() {
         if (cache == null) {
-            List<Channel> out = new ArrayList<>(parse(read("iptv.m3u"), false));
-            Map<String, List<String>> langs = languages(read("iptv-lang.m3u"));
-            for (Channel c : out) { List<String> l = langs.get(c.url); if (l != null) c.langs = l.toArray(new String[0]); }
+            List<Channel> out = new ArrayList<>(), adult = new ArrayList<>();
+            // The playlist sources: normal ones together, adult ones marked and sorted by where they came from (one entry per name)
+            for (Sources.Source src : Sources.added(Sources.PLAYLIST)) {
+                Map<String, List<String>> langs = src.languages.isEmpty() ? new HashMap<>() : languages(Sources.read(Sources.langData(src)));
+                for (Channel c : parse(Sources.read(Sources.data(src)), src.adult)) {
+                    c.source = src.name;
+                    List<String> l = langs.get(c.url);
+                    if (l != null) c.langs = l.toArray(new String[0]);
+                    (c.adult ? adult : out).add(c);
+                }
+            }
             // The playlists you added: one category ("My playlists"), every entry kept as it is
             for (String url : mine()) {
                 for (Channel c : parse(read(mineFile(url)), false)) {
                     c.cats = new String[]{MINE};
                     c.playlist = url;
                     out.add(c);
-                }
-            }
-            // The source list's playlists: normal ones join the rest, adult ones are marked and sorted by where they came from; one entry per name
-            List<Channel> adult = new ArrayList<>();
-            for (int i = 0; i < adultSources().size(); i++) {
-                String[] src = adultSources().get(i);
-                for (Channel c : parse(read("iptv-adult" + i + ".m3u"), isAdult(src))) {
-                    c.source = src[0];
-                    (c.adult ? adult : out).add(c);
                 }
             }
             Set<String> seen = new HashSet<>();
@@ -172,7 +114,15 @@ final class Iptv {
         return out;
     }
 
-    /** Stream address to its languages, from iptv-org's by-language playlist (a stream is listed once per language). */
+    /** The channels hidden as offline (the background check could not reach them), by name. */
+    static List<Channel> hidden() {
+        List<Channel> out = new ArrayList<>();
+        if (cache == null || !hideDead()) return out;
+        for (Channel c : cache) if ((adultOn() || !c.adult) && isDead(c.url)) out.add(c);
+        return out;
+    }
+
+    /** Stream address to its languages, from a by-language playlist (a stream is listed once per language). */
     static Map<String, List<String>> languages(String m3u) {
         Map<String, List<String>> out = new HashMap<>();
         String group = null;
@@ -256,7 +206,23 @@ final class Iptv {
     static boolean isDead(String url) {
         loadHealth();
         Long v = health.get(url);
-        return v != null && v < 0 && System.currentTimeMillis() + v < DEAD_TTL;
+        return v != null && v < 0 && System.currentTimeMillis() + v < DEAD_TTL && !kept().contains(url);
+    }
+
+    private static volatile Set<String> kept;
+
+    /** Channels brought back by hand (IPTV tab, the offline line): never hidden as offline again, the check can be wrong about them. */
+    static Set<String> kept() {
+        Set<String> k = kept;
+        if (k == null) kept = k = new HashSet<>(App.prefs.getStringSet("iptvKeep", java.util.Collections.emptySet()));
+        return k;
+    }
+
+    static void restore(java.util.Collection<String> urls) {
+        Set<String> k = new HashSet<>(kept());
+        k.addAll(urls);
+        kept = k;
+        App.prefs.edit().putStringSet("iptvKeep", k).apply();
     }
 
     static boolean known(String url) {
@@ -266,9 +232,8 @@ final class Iptv {
 
     static int deadCount() {
         loadHealth();
-        int n = 0;
-        for (Channel c : all(true)) if (isDead(c.url)) n++;   // all(true) reloads the list after a playlist was added or removed
-        return n;
+        all();   // the list as the tabs show it (adult channels only when they are on), so the count matches the Show offline list
+        return hidden().size();
     }
 
     /** One line for the top of the IPTV tab, "" when there is nothing to say. */
@@ -338,18 +303,6 @@ final class Iptv {
         }).start();
     }
 
-    /**
-     * The site address table on its own (small; sites change their addresses often): at app start when older than an hour,
-     * apart from the playlists' 12 hours. Call off the main thread.
-     */
-    static void refreshLinks() {
-        if (System.currentTimeMillis() - file("deeplinks.json").lastModified() < 3600_000L) return;
-        if (!extrasUrl().isEmpty()) saveText(extrasUrl(), "iptv-extras.txt");
-        reloadExtras();
-        String links = special("deeplinks");
-        if (!links.isEmpty() && saveText(links, "deeplinks.json")) Sites.reloadDeeplinks();
-    }
-
     /** Every channel including the offline ones (for the checker itself). */
     static synchronized List<Channel> all(boolean everything) {
         if (!everything) return all();
@@ -357,20 +310,15 @@ final class Iptv {
         return new ArrayList<>(cache);
     }
 
-    /** Downloads the playlists; true if the main one arrived. Call off the main thread. */
+    /** Downloads the playlist sources and your own playlists; true if the sources could be read. Call off the main thread. */
     static boolean refresh() {
         loading = true;
         try {
-            boolean ok = save(MAIN, "iptv.m3u");
-            save(LANGUAGES, "iptv-lang.m3u");
-            if (!extrasUrl().isEmpty()) saveText(extrasUrl(), "iptv-extras.txt");
-            reloadExtras();
-            String links = special("deeplinks");
-            if (!links.isEmpty() && saveText(links, "deeplinks.json")) Sites.reloadDeeplinks();
-            for (int i = 0; i < adultSources().size(); i++) save(adultSources().get(i)[1], "iptv-adult" + i + ".m3u");
+            Sources.refresh(Sources.PLAYLIST);
             for (String url : mine()) fetchMine(url);
             synchronized (Iptv.class) { cache = null; }
-            return ok;
+            for (Sources.Source src : Sources.added(Sources.PLAYLIST)) if (Sources.data(src).exists()) return true;
+            return Sources.added(Sources.PLAYLIST).isEmpty();
         } finally {
             loading = false;
         }
@@ -512,24 +460,6 @@ final class Iptv {
         saveMine(now);
         name(url, null);
         file(mineFile(url)).delete();
-    }
-
-    static boolean save(String url, String name) {
-        try {
-            // Same route as the player: through WARP, except for addresses on your own network
-            java.net.URL u = new java.net.URL(url);
-            java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection(Warp.proxyFor(u.getHost()));
-            c.setConnectTimeout(15000);
-            c.setReadTimeout(30000);
-            c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36");
-            String text = Sites.readAll(c.getInputStream());
-            if (!text.trim().startsWith("#EXTM3U")) return false;
-            File tmp = file(name + ".tmp");
-            try (FileOutputStream out = new FileOutputStream(tmp)) { out.write(text.getBytes(StandardCharsets.UTF_8)); }
-            return tmp.renameTo(file(name));
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     static String read(String name) {
@@ -721,10 +651,10 @@ final class Iptv {
         return out;
     }
 
-    /** Adult channels grouped by the list they came from (in the order of the source list), A to Z inside each. */
+    /** Adult channels grouped by the list they came from (in the order they were added), A to Z inside each. */
     static List<Channel> bySource(List<Channel> in) {
         List<String> order = new ArrayList<>();
-        for (String[] src : adultSources()) order.add(src[0]);
+        for (Sources.Source src : Sources.added(Sources.PLAYLIST)) order.add(src.name);
         List<Channel> out = new ArrayList<>(in);
         out.sort((a, b) -> {
             int d = order.indexOf(a.source) - order.indexOf(b.source);

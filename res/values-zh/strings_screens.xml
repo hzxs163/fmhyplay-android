@@ -131,4 +131,9 @@
     <string name="iptv_pinned">已固定：%1$s</string>
     <string name="iptv_unpinned">已取消固定：%1$s</string>
     <string name="title_trailer">预告片</string>
+    <string name="iptv_restore_chip">显示离线频道</string>
+    <string name="iptv_restore_title">离线频道</string>
+    <string name="iptv_restore_all">全部恢复（%1$d）</string>
+    <string name="iptv_restored">%1$s 已回到列表</string>
+    <string name="iptv_restored_all">%1$d 个频道已回到列表</string>
 </resources>

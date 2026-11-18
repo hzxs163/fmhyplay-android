@@ -22,10 +22,8 @@
     <string name="player_speed">स्पीड</string>
     <string name="player_speed_now">स्पीड · %1$s</string>
     <string name="player_zoom_fit">फ़िट</string>
-    <string name="player_zoom_fill">फ़िल</string>
+    <string name="player_zoom_fill">क्रॉप</string>
     <string name="player_zoom_stretch">स्ट्रेच</string>
-    <string name="player_zoom_16_9">16:9</string>
-    <string name="player_zoom_4_3">4:3</string>
     <string name="player_zoom_now">ज़ूम · %1$s</string>
     <string name="player_debug_now">डीबग ओवरले: %1$s</string>
     <string name="player_zoom_say">ज़ूम: %1$s</string>
@@ -34,7 +32,7 @@
     <string name="player_full_screen">फ़ुल स्क्रीन</string>
     <string name="player_subs_file">सबटाइटल %1$d (%2$s)</string>
     <string name="player_channel_offline">चैनल ऑफ़लाइन है (%1$s)</string>
-    <string name="player_cant_play">FMHYPlayer इसे नहीं चला सका (%1$s), पेज पर वापस जा रहे हैं</string>
+    <string name="player_cant_play">AnantPlayer इसे नहीं चला सका (%1$s), पेज पर वापस जा रहे हैं</string>
     <string name="player_resumed_at">%1$s से फिर शुरू</string>
     <string name="player_live">लाइव</string>
     <string name="player_no_servers">इस पेज पर सर्वर की लिस्ट नहीं मिली</string>
@@ -90,9 +88,9 @@
     <string name="cast_channel">कास्ट</string>
     <string name="cast_ready">आपके फ़ोन से कास्ट के लिए तैयार</string>
     <string name="cast_sending_video">आपके टीवी पर वीडियो भेजा जा रहा है</string>
-    <string name="cast_label_app">%1$s - FMHYPlay (सुझाया गया)</string>
+    <string name="cast_label_app">%1$s - AnantPlay (सुझाया गया)</string>
     <string name="cast_label_chromecast">%1$s - Chromecast</string>
-    <string name="cast_blocked">टीवी ने इसे नहीं खोला। टीवी पर: FMHYPlay, सेटिंग, इस टीवी पर कास्ट करें, और अनुमति दें</string>
+    <string name="cast_blocked">टीवी ने इसे नहीं खोला। टीवी पर: AnantPlay, सेटिंग, इस टीवी पर कास्ट करें, और अनुमति दें</string>
     <string name="cast_tv_cant_open">टीवी यह वीडियो नहीं खोल सका</string>
     <string name="cast_volume_down">वॉल्यूम −</string>
     <string name="cast_volume_up">वॉल्यूम +</string>
@@ -122,4 +120,5 @@
     <string name="player_more">और</string>
     <string name="player_channels">चैनल</string>
     <string name="player_more_watch">और देखें</string>
+    <string name="player_auto_up_to">ऑटो · %1$s तक</string>
 </resources>

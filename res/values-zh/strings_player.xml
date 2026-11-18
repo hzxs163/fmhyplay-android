@@ -128,4 +128,5 @@
     <string name="player_lock">锁定</string>
     <string name="player_unlock">解锁</string>
     <string name="player_locked">已锁定，点击左侧的锁按钮解锁</string>
+    <string name="player_auto_up_to">自动 · 最高 %1$s</string>
 </resources>

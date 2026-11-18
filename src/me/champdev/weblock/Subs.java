@@ -360,7 +360,7 @@ final class Subs {
 
     /** The folder for downloads: a preset or one of your own (under Download, Movies or Documents); `done` runs after it changed. */
     static void pickFolder(android.app.Activity a, Runnable done) {
-        String[] presets = {"Download/FMHYPlay", "Movies/FMHYPlay", "Documents/FMHYPlay"};
+        String[] presets = {"Download/AnantPlay", "Movies/AnantPlay", "Documents/AnantPlay"};
         String[] items = {Downloads.root() + "/" + presets[0], Downloads.root() + "/" + presets[1], Downloads.root() + "/" + presets[2], App.t(R.string.dl_folder_other)};
         new android.app.AlertDialog.Builder(a).setTitle(App.t(R.string.dl_folder)).setOnCancelListener(d -> done.run()).setItems(items, (d, i) -> {
             if (i < presets.length) { App.prefs.edit().putString("dlFolder", presets[i]).apply(); done.run(); return; }

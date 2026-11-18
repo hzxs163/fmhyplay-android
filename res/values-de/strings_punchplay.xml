@@ -2,7 +2,7 @@
 <resources>
     <string name="punchplay_help">Markiert Filme und Folgen, die du im Player schaust, auf PunchPlay als gesehen, einem kostenlosen Tracker. Titel aus Filme, Serien oder Anime.</string>
     <string name="punchplay_disconnect_title">PunchPlay trennen?</string>
-    <string name="punchplay_disconnect_msg">FMHYPlay meldet PunchPlay nicht mehr, was du schaust. Dein PunchPlay-Verlauf bleibt.</string>
+    <string name="punchplay_disconnect_msg">AnantPlay meldet PunchPlay nicht mehr, was du schaust. Dein PunchPlay-Verlauf bleibt.</string>
     <string name="punchplay_connect">PunchPlay verbinden</string>
     <string name="punchplay_offline">PunchPlay nicht erreichbar. Prüf WARP und versuch es noch mal.</string>
     <string name="punchplay_connected">PunchPlay verbunden</string>

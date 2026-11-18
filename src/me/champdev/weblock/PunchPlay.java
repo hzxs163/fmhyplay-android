@@ -63,7 +63,7 @@ final class PunchPlay {
         try {
             int[] status = new int[2];
             JSONObject o = new JSONObject(call("/auth/device/token", new JSONObject().put("client_id", CLIENT_ID).put("device_code", c.device)
-                .put("device_id", device()).put("device_name", "FMHYPlay (" + android.os.Build.MODEL + ")"), status, null));
+                .put("device_id", device()).put("device_name", "AnantPlay (" + android.os.Build.MODEL + ")"), status, null));
             if (status[0] == 200 && o.has("refresh_token")) { keep(o); return "ok"; }
             if (status[0] == 429) { c.interval = Math.max(c.interval, status[1]); return "wait"; }
             switch (o.optString("error")) {
@@ -151,7 +151,7 @@ final class PunchPlay {
     private static String call(String path, JSONObject body, int[] status, String token) throws IOException {
         HttpURLConnection c = Warp.open(API + path);
         c.setRequestMethod("POST");
-        c.setRequestProperty("User-Agent", "FMHYPlay/" + Update.installed());
+        c.setRequestProperty("User-Agent", "AnantPlay/" + Update.installed());
         c.setRequestProperty("Accept", "application/json");
         c.setRequestProperty("Content-Type", "application/json");
         if (token != null) c.setRequestProperty("Authorization", "Bearer " + token);

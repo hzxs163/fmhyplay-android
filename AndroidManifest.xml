@@ -15,8 +15,8 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <uses-feature android:name="android.software.leanback" android:required="false"/>
 
-    <application android:name=".App" android:label="FMHYPlay" android:icon="@mipmap/ic_launcher" android:banner="@drawable/banner"
-        android:theme="@style/AppTheme" android:usesCleartextTraffic="true" android:supportsRtl="true" android:extractNativeLibs="true">
+    <application android:name=".App" android:label="AnantPlay" android:icon="@mipmap/ic_launcher" android:banner="@drawable/banner"
+        android:theme="@style/AppTheme" android:largeHeap="true" android:usesCleartextTraffic="true" android:supportsRtl="true" android:extractNativeLibs="true">
         <activity android:name=".Home" android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode">
             <intent-filter>
@@ -25,6 +25,12 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".SourcesActivity" android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode"/>
+        <activity android:name=".PlatformActivity" android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode"/>
+        <activity android:name=".ListActivity" android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode"/>
         <activity android:name=".CategoryActivity" android:exported="false"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode"/>
         <activity android:name=".IptvActivity" android:exported="false"

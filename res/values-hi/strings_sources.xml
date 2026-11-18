@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sources_title">सोर्स</string>
+    <string name="sources_hint">AnantPlay में अपनी कोई साइट या चैनल नहीं आते। एक इंडेक्स जोड़ें, फिर उसमें से अपने चाहे सोर्स।</string>
+    <string name="sources_index_name">AnantPlay इंडेक्स</string>
+    <string name="sources_index_help">वे सोर्स जिन्हें AnantPlay प्रोजेक्ट अपडेट रखता है</string>
+    <string name="sources_index_add">यह इंडेक्स जोड़ें</string>
+    <string name="sources_index_added">इंडेक्स जुड़ गया</string>
+    <string name="sources_added">जुड़ा है</string>
+    <string name="sources_add">जोड़ें</string>
+    <string name="sources_remove_index_title">यह इंडेक्स हटाएं?</string>
+    <string name="sources_remove_index_msg">%1$s और उससे जोड़े गए सभी सोर्स हट जाएंगे।</string>
+    <string name="sources_loading">लोड हो रहा है…</string>
+    <string name="sources_unreachable">लोड नहीं हुआ। फिर से कोशिश के लिए चुनें</string>
+    <string name="sources_unreachable_toast">पहुंच नहीं हो पाई, बाद में कोशिश करें</string>
+    <string name="sources_added_toast">%1$s जुड़ गया</string>
+    <string name="sources_newer">AnantPlay का नया वर्ज़न चाहिए</string>
+    <string name="sources_title_links">टाइटल लिंक</string>
+    <string name="sources_type_sites">साइटें</string>
+    <string name="sources_type_playlist">चैनल</string>
+    <string name="sources_type_deeplinks">टाइटल लिंक</string>
+    <string name="sources_add_index">लिंक से इंडेक्स जोड़ें</string>
+    <string name="sources_add_index_help">किसी की होस्ट की गई सोर्स लिस्ट: index.json या पुरानी sources.txt</string>
+    <string name="sources_none">अभी कोई सोर्स नहीं जोड़ा</string>
+    <string name="sources_add_chip">सोर्स जोड़ें</string>
+    <string name="sources_settings_help">साइटें, चैनल और टाइटल लिंक कहां से आते हैं</string>
+    <string name="sources_count">%1$d जुड़े</string>
+    <string name="sources_refresh">सोर्स रिफ्रेश करें</string>
+    <string name="sources_refresh_help">हर सोर्स की नई कॉपी डाउनलोड करता है (हर 12 घंटे में भी)।</string>
+    <string name="sources_checking">सोर्स जांच रहे हैं…</string>
+    <string name="sources_updated">सोर्स अपडेट हो गए</string>
+    <string name="sources_current">सोर्स अप टू डेट हैं</string>
+    <string name="sources_notice_title">FMHYPlay अब AnantPlay है</string>
+    <string name="sources_notice_msg">साइटें और चैनल अब उन सोर्स से आते हैं जिन्हें आप सेटिंग्स, सोर्स में चुनते हैं। आपके सोर्स आपके लिए जोड़ दिए गए हैं।</string>
+    <string name="sources_notice_open">सोर्स खोलें</string>
+</resources>

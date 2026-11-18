@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 /** Looks for a newer release on GitHub and installs its APK over this app (same signing key, so Android takes it as an update). */
 final class Update {
-    static final String API = "https://api.github.com/repos/fmhyplay/android/releases?per_page=15";   // newest first
+    static final String API = "https://api.github.com/repos/AnantPlay/android/releases?per_page=15";   // newest first
     static final long EVERY = 3600L * 1000;   // an hour (and at every boot, below)
     static final int HOURLY = 7001, AT_BOOT = 7002;
     private static volatile boolean busy;

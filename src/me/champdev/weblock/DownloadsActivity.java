@@ -101,10 +101,16 @@ public class DownloadsActivity extends Home {
         row.speed.setPadding(dp(10), 0, dp(4), 0);
         top.addView(row.speed);
         mid.addView(top);
-        TextView where = text(Downloads.pathOf(it), sp(10.5f, 10), MUTED, false);   // /sdcard/Download/FMHYPlay/Name.ext
+        TextView where = text(Downloads.pathOf(it), sp(10.5f, 10), MUTED, false);   // /sdcard/Download/AnantPlay/Name.ext
         where.setMaxLines(2);   // the whole path: a long one wraps instead of being cut in the middle
         where.setEllipsize(TextUtils.TruncateAt.END);
         if (!where.getText().toString().isEmpty()) mid.addView(where);
+        if (done && it.ext.equals("ts")) {   // no seek table: what to do about it, or why that did not work
+            TextView ts = text(it.note.isEmpty() ? App.t(R.string.dl_ts_hint) : App.t(R.string.dl_ts_kept, it.note), sp(10.5f, 10), it.note.isEmpty() ? MUTED : ACCENT, false);   // a hint, or why it did not work
+            ts.setMaxLines(3);
+            ts.setEllipsize(TextUtils.TruncateAt.END);
+            mid.addView(ts);
+        }
 
         LinearLayout stats = new LinearLayout(this);
         stats.setGravity(Gravity.CENTER_VERTICAL);
@@ -141,6 +147,11 @@ public class DownloadsActivity extends Home {
             : done ? button(R.drawable.ic_pb_play, App.t(R.string.dl_play), () -> play(it)) : button(R.drawable.ic_pb_play, App.t(R.string.dl_resume), () -> Downloads.resume(it));
         main.setTag("d" + it.id + "m");
         card.addView(main);
+        if (done && it.ext.equals("ts")) {
+            ImageView fix = button(R.drawable.ic_refresh, App.t(R.string.dl_make_seekable), () -> Downloads.makeSeekable(it));
+            fix.setTag("d" + it.id + "s");
+            card.addView(fix);
+        }
         ImageView bin = button(R.drawable.ic_delete, App.t(R.string.dl_delete), () -> confirmDelete(it));
         bin.setTag("d" + it.id + "x");
         card.addView(bin);
@@ -152,7 +163,7 @@ public class DownloadsActivity extends Home {
     void fill(Row row, Downloads.Item it) {
         boolean running = it.status.equals("running");
         row.speed.setVisibility(running ? View.VISIBLE : View.GONE);
-        if (running) row.speed.setText(App.t(R.string.dl_speed, Formatter.formatFileSize(this, it.speed), it.conns));
+        if (running) row.speed.setText(it.kind.equals("convert") ? App.t(R.string.dl_converting) : App.t(R.string.dl_speed, Formatter.formatFileSize(this, it.speed), it.conns));
         if (row.done == null) return;   // a failed one shows its reason instead
         boolean done = it.status.equals("done");
         long got = done && it.total > 0 ? it.total : it.doneBytes();

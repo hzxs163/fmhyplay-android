@@ -53,8 +53,16 @@ public class App extends Application {
     @Override public void onCreate() {
         super.onCreate();
         app = this;
-        prefs = getSharedPreferences("fmhyplay", MODE_PRIVATE);
+        prefs = getSharedPreferences("fmhyplay", MODE_PRIVATE);   // the name from before the rename: changing it would wipe everyone's settings
         Update.schedule(this, false);   // the hourly check, with the app closed too
+        // A new version may read things the kept brand file (6 hours) does not have yet: after an update it is fetched again
+        try {
+            long updated = getPackageManager().getPackageInfo(getPackageName(), 0).lastUpdateTime;
+            if (prefs.getLong("brandsFor", 0) != updated) {
+                Catalog.file(Catalog.COLLECTIONS).delete();
+                prefs.edit().putLong("brandsFor", updated).apply();
+            }
+        } catch (PackageManager.NameNotFoundException ignored) { }
         // The TV and Android builds each carry a "flavor" asset; anything else (old builds) guesses from the device
         try (java.io.InputStream in = getAssets().open("flavor")) { byte[] b = new byte[16]; flavor = new String(b, 0, Math.max(0, in.read(b))).trim(); } catch (java.io.IOException ignored) { }
         // Phones and tablets (touchscreen, not in TV mode) are never "tv", whichever APK was installed

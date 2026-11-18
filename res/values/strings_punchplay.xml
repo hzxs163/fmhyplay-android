@@ -3,7 +3,7 @@
 <resources>
     <string name="punchplay_help">Marks movies and episodes you watch in the player as watched on PunchPlay, a free tracker. Titles opened from Movies, TV or Anime.</string>
     <string name="punchplay_disconnect_title">Disconnect PunchPlay?</string>
-    <string name="punchplay_disconnect_msg">FMHYPlay stops telling PunchPlay what you watch. Your PunchPlay history stays.</string>
+    <string name="punchplay_disconnect_msg">AnantPlay stops telling PunchPlay what you watch. Your PunchPlay history stays.</string>
     <string name="punchplay_connect">Connect PunchPlay</string>
     <string name="punchplay_offline">Can\'t reach PunchPlay. Check WARP and try again.</string>
     <string name="punchplay_connected">PunchPlay connected</string>

@@ -45,9 +45,14 @@ final class Catalog {
         String trailer = "";   // YouTube id (detail page)
         String released = "";   // "2026-10-02T00:00:00.000Z": cinema release for a movie, first episode for a series
         boolean anime;   // set by search, from Kitsu's anime list
+        String tags = "";   // a brand list's groups this title is in, space-separated ("mcu animation")
+        float pop;          // brand lists: TMDB popularity now and how many voted (Popular)
+        int votes;
         final List<Episode> episodes = new ArrayList<>();
 
         boolean series() { return type.equals("series"); }
+
+        boolean tagged(String tag) { return (" " + tags + " ").contains(" " + tag + " "); }
 
         String kind() { return anime ? "Anime" : series() ? "TV Series" : "Movie"; }
     }
@@ -55,11 +60,17 @@ final class Catalog {
     /** One catalog page. type = movie|series; extra = "" | "genre=Comedy" | "skip=50" | "search=text". Null when offline with nothing cached. */
     static List<Title> list(String type, String extra) {
         if (extra.startsWith("local=")) return local(type, extra.substring(6), false);
+        if (extra.startsWith("rank=")) return rank(type, extra.substring(5), false);
         if (extra.startsWith("genre=" + LANG)) return language(type, extra.substring(6 + LANG.length()), false);
         if (extra.equals(NEW_ANIME)) return newAnime(false);
         if (extra.equals(TRENDING_ANIME)) return kitsu("kitsu-anime-trending", new int[]{0}, 0, false);
         if (extra.startsWith("genre=" + POPULAR_ANIME)) return popularAnime(extra, false);
         if (extra.startsWith("genre=" + NEW)) return extra.contains("skip=") ? new ArrayList<>() : fresh(type, false);   // one page only
+        if (extra.startsWith("genre=" + PLATFORM)) {   // one list of about 100 per service and kind, no pages
+            if (extra.contains("skip=")) return new ArrayList<>();
+            String text = get(platformPath(type, extra.substring(6 + PLATFORM.length())), true);
+            return text == null ? null : parseList(text, type);
+        }
         String text = get(path(type, extra), !extra.startsWith("search="));
         return text == null ? null : parseList(text, type);
     }
@@ -223,6 +234,28 @@ final class Catalog {
         return any ? new ArrayList<>(out.values()) : null;
     }
 
+    /** Our own per-language lists, built weekly by the scraper repo's job: a file per language with new and popular titles. */
+    static final String LANGUAGE_FILES = "https://raw.githubusercontent.com/AnantPlay/scraper/main/languages/";
+
+    /** A language's New or Popular row. `spec` = "new:Hindi" or "popular:Hindi". Null when the file is not here (yet) or the row is empty. */
+    static List<Title> rank(String type, String spec, boolean diskOnly) {
+        String[] parts = spec.split(":", 2);
+        try {
+            String url = LANGUAGE_FILES + java.net.URLEncoder.encode(parts[1], "UTF-8").replace("+", "%20") + ".json";
+            String text = diskOnly ? disk(url) : get(url, true);
+            JSONArray a = text == null ? null : new JSONObject(text).getJSONObject(type).optJSONArray(parts[0]);
+            if (a == null || a.length() == 0) return null;
+            List<Title> out = new ArrayList<>();
+            for (int i = 0; i < a.length(); i++) {
+                Title t = brandTitle(a.getJSONObject(i));
+                if (t != null) out.add(t);
+            }
+            return out;
+        } catch (java.io.UnsupportedEncodingException | JSONException e) {
+            return null;
+        }
+    }
+
     /** The TMDB addon's titles under their IMDb ids (from each one's IMDb link), so title pages, subtitles and site links work as for Cinemeta's. */
     static List<Title> parseTmdb(String json, String type) {
         List<Title> out = new ArrayList<>();
@@ -274,12 +307,14 @@ final class Catalog {
 
     static List<Title> fromDisk(String type, String extra) {
         if (extra.startsWith("local=")) return local(type, extra.substring(6), true);
+        if (extra.startsWith("rank=")) return rank(type, extra.substring(5), true);
         if (extra.startsWith("genre=" + LANG)) return language(type, extra.substring(6 + LANG.length()), true);
         if (extra.equals(NEW_ANIME)) return newAnime(true);
         if (extra.equals(TRENDING_ANIME)) return kitsu("kitsu-anime-trending", new int[]{0}, 0, true);
         if (extra.startsWith("genre=" + POPULAR_ANIME)) return popularAnime(extra, true);
         if (extra.startsWith("genre=" + NEW)) return extra.contains("skip=") ? new ArrayList<>() : fresh(type, true);
-        File f = file(path(type, extra));
+        if (extra.startsWith("genre=" + PLATFORM) && extra.contains("skip=")) return new ArrayList<>();
+        File f = file(extra.startsWith("genre=" + PLATFORM) ? platformPath(type, extra.substring(6 + PLATFORM.length())) : path(type, extra));
         if (!f.exists() || System.currentTimeMillis() - f.lastModified() > TTL) return null;
         try {
             return parseList(Sites.readAll(new java.io.FileInputStream(f)), type);
@@ -445,6 +480,137 @@ final class Catalog {
                 return null;
             }
         }
+    }
+
+    // ---- platforms and brands ----
+
+    /** What is popular on each streaming service: the Streaming Catalogs Stremio add-on (no key). Its lists are the same in every country. */
+    static final String PLATFORMS = "https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club";
+    static final String PLATFORM = "platform:";   // as a list's genre: "platform:dnp"
+    /** {id, name, color, countries it is shown in ("" = everywhere)}, in the order of the tiles. */
+    // India: Disney+ and Hotstar are one service, so one tile there (it carries Disney+'s brands)
+    static final String[][] SERVICES = {
+        {"nfx", "Netflix", "#E50914", ""}, {"amp", "Prime Video", "#1A98FF", ""}, {"dnp", "Disney+", "#4E8DFF", "!IN"},
+        {"jhs", "Hotstar+", "#E6399B", "IN"}, {"hbm", "HBO Max", "#9B6BFF", ""}, {"atp", "Apple TV+", "#FFFFFF", ""},
+        {"zee", "Zee5", "#B36BFF", "IN"}, {"hlu", "Hulu", "#1CE783", "US"}, {"pcp", "Peacock", "#FFD21F", "US"},
+        {"pmp", "Paramount+", "#3D8BFF", ""}, {"cru", "Crunchyroll", "#F47521", ""}};
+
+    /** The services to offer in a country ("" = no country set: the ones that are everywhere). A service's "IN" = only there, "!IN" = not there. */
+    static List<String[]> services(String region) {
+        List<String[]> out = new ArrayList<>();
+        for (String[] s : SERVICES) if (s[3].isEmpty() || (s[3].startsWith("!") ? !s[3].substring(1).equalsIgnoreCase(region) : s[3].equalsIgnoreCase(region))) out.add(s);
+        return out;
+    }
+
+    static String[] service(String id) {
+        for (String[] s : SERVICES) if (s[0].equals(id)) return s;
+        return null;
+    }
+
+    /** The add-on reads its settings from the address: base64 of "providers:rpdbKey:country:timestamp:0:0:". */
+    static String platformPath(String type, String id) {
+        String cfg = java.util.Base64.getEncoder().encodeToString((id + "::US:0:0:0:").getBytes(StandardCharsets.UTF_8));
+        return PLATFORMS + "/" + cfg.replace("=", "%3D").replace("+", "%2B").replace("/", "%2F") + "/catalog/" + type + "/" + id + ".json";
+    }
+
+    /** Brand lists inside a platform (Disney+ > Marvel, Pixar...), built weekly by the scraper repo's job. Our own metadata, no site links. */
+    static final String COLLECTIONS = "https://raw.githubusercontent.com/AnantPlay/scraper/main/collections.json";
+
+    static final class Brand {
+        String id = "", name = "", color = "";
+        final List<String[]> groups = new ArrayList<>();   // {id, name}: what its page can be narrowed to (Marvel: MCU, Animation)
+        final List<Title> titles = new ArrayList<>();
+
+        /**
+         * One of the page's rows, of one kind ("" both, movie | series): new, popular, rated (only titles enough people voted
+         * on), movie | series, or a group ("mcu"); the last three newest first.
+         */
+        List<Title> list(String kind, String row) {
+            List<Title> out = new ArrayList<>();
+            for (Title t : titles) {
+                if (!kind.isEmpty() && !kind.equals(t.type)) continue;
+                boolean in;
+                switch (row) {
+                    case "new": case "popular": in = true; break;
+                    case "rated": in = t.votes >= 200; break;
+                    case "movie": case "series": in = t.type.equals(row); break;
+                    default: in = t.tagged(row);
+                }
+                if (in) out.add(t);
+            }
+            switch (row) {
+                case "popular": out.sort((x, y) -> y.votes - x.votes); break;
+                case "rated": out.sort((x, y) -> Float.compare(number(y.rating), number(x.rating))); break;
+                default: out.sort((x, y) -> y.year.compareTo(x.year));   // the job lists them so already, this keeps it true
+            }
+            return out;
+        }
+
+        static float number(String s) {
+            try { return Float.parseFloat(s); } catch (NumberFormatException e) { return 0; }
+        }
+    }
+
+    /** A platform's brands; empty when it has none or the file is not here yet. Network on the first call of every 6 hours: off the main thread. */
+    static List<Brand> brands(String platform) {
+        String text = get(COLLECTIONS, true);
+        return text == null ? new ArrayList<>() : parseBrands(text, platform.equals("jhs") ? "dnp" : platform);
+    }
+
+    static String brandsText;   // the file as it was read last, parsed once: Home asks for several of its lists in a row
+    static JSONObject brandsRoot;
+
+    static synchronized JSONObject brandsRoot(String json) throws JSONException {
+        if (!json.equals(brandsText)) {
+            brandsRoot = new JSONObject(json);
+            brandsText = json;
+        }
+        return brandsRoot;
+    }
+
+    /** `platform` is a service ("dnp") or one of the file's other lists of brands ("studios", "kids"). */
+    static List<Brand> parseBrands(String json, String platform) {
+        List<Brand> out = new ArrayList<>();
+        try {
+            JSONObject p = brandsRoot(json).getJSONObject("platforms").optJSONObject(platform);
+            JSONArray brands = p == null ? null : p.optJSONArray("brands");
+            for (int i = 0; brands != null && i < brands.length(); i++) {
+                JSONObject o = brands.getJSONObject(i);
+                Brand b = new Brand();
+                b.id = o.optString("id");
+                b.name = o.optString("name");
+                b.color = o.optString("color", "#FFFFFF");
+                JSONArray groups = o.optJSONArray("groups");
+                for (int j = 0; groups != null && j < groups.length(); j++) {
+                    JSONObject g = groups.getJSONObject(j);
+                    if (!g.optString("id").isEmpty() && !g.optString("name").isEmpty()) b.groups.add(new String[]{g.optString("id"), g.optString("name")});
+                }
+                JSONArray titles = o.optJSONArray("titles");
+                for (int j = 0; titles != null && j < titles.length(); j++) {
+                    Title t = brandTitle(titles.getJSONObject(j));
+                    if (t != null) b.titles.add(t);
+                }
+                if (!b.id.isEmpty() && !b.name.isEmpty() && !b.titles.isEmpty()) out.add(b);
+            }
+        } catch (JSONException ignored) { }
+        return out;
+    }
+
+    /** One title of the scraper's files (collections.json, languages/*.json); null without an IMDb id or a name. */
+    static Title brandTitle(JSONObject x) throws JSONException {
+        Title t = new Title();
+        t.id = x.optString("id");
+        t.type = x.optString("type").equals("series") ? "series" : "movie";
+        t.name = x.optString("name");
+        t.year = x.optString("year");
+        t.poster = x.optString("poster");
+        t.tmdb = x.optString("tmdb");
+        t.rating = x.optString("rating");
+        t.pop = (float) x.optDouble("pop", 0);
+        t.votes = x.optInt("votes");
+        JSONArray tags = x.optJSONArray("tags");
+        if (tags != null) t.tags = tags.join(" ").replace("\"", "");
+        return t.id.startsWith("tt") && !t.name.isEmpty() ? t : null;
     }
 
     // ---- My list ----

@@ -2,7 +2,7 @@
 <resources>
     <string name="punchplay_help">Marca como assistidos no PunchPlay, um rastreador gratuito, os filmes e episódios que você vê no player. Títulos abertos em Filmes, Séries ou Anime.</string>
     <string name="punchplay_disconnect_title">Desconectar o PunchPlay?</string>
-    <string name="punchplay_disconnect_msg">O FMHYPlay para de informar ao PunchPlay o que você assiste. Seu histórico no PunchPlay continua.</string>
+    <string name="punchplay_disconnect_msg">O AnantPlay para de informar ao PunchPlay o que você assiste. Seu histórico no PunchPlay continua.</string>
     <string name="punchplay_connect">Conectar o PunchPlay</string>
     <string name="punchplay_offline">Não foi possível acessar o PunchPlay. Verifique o WARP e tente de novo.</string>
     <string name="punchplay_connected">PunchPlay conectado</string>

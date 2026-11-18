@@ -46,36 +46,40 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Phone to TV casting between two FMHYPlay installs on the same Wi-Fi.
- * The TV runs a small HTTP server (port 8765) and announces itself over mDNS as _fmhyplay._tcp with the TV's name.
+ * Phone to TV casting between two AnantPlay installs on the same Wi-Fi.
+ * The TV runs a small HTTP server (port 8765) and announces itself over mDNS as _anantplay._tcp with the TV's name.
  * The phone's player finds it, sends the stream (URL, request headers, cookie, title, where it is), and becomes a remote:
  * GET /status, POST /play (JSON body), POST /do?a=toggle|seek|stop|vol+|vol-&to=ms.
  */
 final class Cast {
-    static final String TAG = "cast", TYPE = "_fmhyplay._tcp";
+    static final String TAG = "cast", TYPE = "_anantplay._tcp";
+    // ponytail: the name before the rename, announced and looked for too so phones and TVs on either version still find each other; drop it a release or two on
+    static final String OLD_TYPE = "_fmhyplay._tcp";
     static final int PORT = 8765;
-    static final String PREFIX = "FMHYPlay on ";
+    static final String PREFIX = "AnantPlay on ";
 
-    static String shown(String service) { return service.startsWith(PREFIX) ? service.substring(PREFIX.length()) : service; }
+    static String shown(String service) { return service.replaceFirst("^(AnantPlay|FMHYPlay) on ", ""); }
 
     // ---- TV: the receiver ----
 
     static void start(Context c) {
         new Thread(Cast::serve, "cast").start();
-        NsdServiceInfo info = new NsdServiceInfo();
-        // Some TVs refuse a second service with a name already announced (Google's remote uses the TV's name), so ours is prefixed
-        info.setServiceName(PREFIX + tvName(c));
-        info.setServiceType(TYPE);
-        info.setPort(PORT);
-        try {
-            c.getSystemService(NsdManager.class).registerService(info, NsdManager.PROTOCOL_DNS_SD, new NsdManager.RegistrationListener() {
-                @Override public void onServiceRegistered(NsdServiceInfo i) { Log.i(TAG, "announced as " + i.getServiceName()); }
-                @Override public void onRegistrationFailed(NsdServiceInfo i, int e) { Log.w(TAG, "announce failed " + e); }
-                @Override public void onServiceUnregistered(NsdServiceInfo i) { }
-                @Override public void onUnregistrationFailed(NsdServiceInfo i, int e) { }
-            });
-        } catch (Exception e) { Log.w(TAG, e); }
-        // A foreground service keeps the process (and so the server) alive after FMHYPlay is left; some TVs refuse it, the server runs anyway
+        for (String type : new String[]{TYPE, OLD_TYPE}) {
+            NsdServiceInfo info = new NsdServiceInfo();
+            // Some TVs refuse a second service with a name already announced (Google's remote uses the TV's name), so ours is prefixed
+            info.setServiceName(PREFIX + tvName(c));
+            info.setServiceType(type);
+            info.setPort(PORT);
+            try {
+                c.getSystemService(NsdManager.class).registerService(info, NsdManager.PROTOCOL_DNS_SD, new NsdManager.RegistrationListener() {
+                    @Override public void onServiceRegistered(NsdServiceInfo i) { Log.i(TAG, "announced as " + i.getServiceName()); }
+                    @Override public void onRegistrationFailed(NsdServiceInfo i, int e) { Log.w(TAG, "announce failed " + e); }
+                    @Override public void onServiceUnregistered(NsdServiceInfo i) { }
+                    @Override public void onUnregistrationFailed(NsdServiceInfo i, int e) { }
+                });
+            } catch (Exception e) { Log.w(TAG, e); }
+        }
+        // A foreground service keeps the process (and so the server) alive after AnantPlay is left; some TVs refuse it, the server runs anyway
         try { c.startForegroundService(new Intent(c, Keep.class)); } catch (Exception e) { Log.w(TAG, "no foreground service: " + e); }
     }
 
@@ -84,7 +88,7 @@ final class Cast {
         return n == null || n.isEmpty() ? android.os.Build.MODEL : n;
     }
 
-    /** True when a cast can open the player while FMHYPlay is closed (Android blocks it otherwise). */
+    /** True when a cast can open the player while AnantPlay is closed (Android blocks it otherwise). */
     static boolean canOpen(Context c) { return android.provider.Settings.canDrawOverlays(c); }
 
     static void serve() {
@@ -201,7 +205,7 @@ final class Cast {
         return status();
     }
 
-    /** Holds the process in the foreground on the TV so a cast still finds the server once FMHYPlay is left. */
+    /** Holds the process in the foreground on the TV so a cast still finds the server once AnantPlay is left. */
     public static class Keep extends Service {
         @Override public void onCreate() {
             super.onCreate();
@@ -217,7 +221,7 @@ final class Cast {
         @Override public IBinder onBind(Intent i) { return null; }
     }
 
-    /** Started at boot so the process (App.onCreate, which starts the server) is running before anyone opens FMHYPlay, and so the update check runs at every boot. */
+    /** Started at boot so the process (App.onCreate, which starts the server) is running before anyone opens AnantPlay, and so the update check runs at every boot. */
     public static class Boot extends android.content.BroadcastReceiver {
         @Override public void onReceive(Context c, Intent i) { Update.schedule(c, true); }   // the process is up; check for an update once the network is
     }
@@ -225,20 +229,20 @@ final class Cast {
     // ---- Phone: finding TVs and talking to them ----
 
     static final String CHROMECAST = "_googlecast._tcp";
-    static final Map<String, String> tvs = new TreeMap<>();          // FMHYPlay TV name -> host:port
+    static final Map<String, String> tvs = new TreeMap<>();          // AnantPlay TV name -> host:port
     static final Map<String, String> chromecasts = new TreeMap<>();  // Cast device name -> host:port (guarded by tvs)
     static final Map<String, String> renderers = new TreeMap<>();    // DLNA renderer name -> "avtUrl|rcUrl" (guarded by tvs)
     static final List<NsdManager.DiscoveryListener> finding = new ArrayList<>();
     static Runnable changed = () -> { };
 
-    /** Looks for FMHYPlay TVs and Cast devices on the Wi-Fi, from app start (the phone), so the player's Cast button is ready. */
+    /** Looks for AnantPlay TVs and Cast devices on the Wi-Fi, from app start (the phone), so the player's Cast button is ready. */
     static void discover(Context c, Runnable onChange) {
         changed = onChange;
         if (!finding.isEmpty()) return;
         searchDlna();
         NsdManager nsd = c.getSystemService(NsdManager.class);
-        for (String type : new String[]{TYPE, CHROMECAST}) {
-            Map<String, String> into = type.equals(TYPE) ? tvs : chromecasts;
+        for (String type : new String[]{TYPE, OLD_TYPE, CHROMECAST}) {
+            Map<String, String> into = type.equals(CHROMECAST) ? chromecasts : tvs;   // a TV on both names is one entry (same name)
             NsdManager.DiscoveryListener l = new NsdManager.DiscoveryListener() {
                 @Override public void onServiceFound(NsdServiceInfo i) { resolve(nsd, i, into, 0); }
                 @Override public void onServiceLost(NsdServiceInfo i) {
@@ -289,7 +293,7 @@ final class Cast {
     static void searchDlna() { App.io.execute(() -> Dlna.search(renderers, tvs, changed)); }
 
     /**
-     * What the Cast list shows: FMHYPlay TVs first, marked recommended (the stream goes over with everything it needs),
+     * What the Cast list shows: AnantPlay TVs first, marked recommended (the stream goes over with everything it needs),
      * then Cast devices ("Name - Chromecast"). Each entry: label, kind ("app" or "cast"), name, host:port.
      */
     static List<String[]> targets() {
@@ -315,7 +319,7 @@ final class Cast {
 
     static Tv session;   // what the phone is casting to, for the remote screen
 
-    /** FMHYPlay on the TV: the stream goes over as is (headers, cookie, WARP and subtitles there). */
+    /** AnantPlay on the TV: the stream goes over as is (headers, cookie, WARP and subtitles there). */
     static final class App2Tv implements Tv {
         final String tv;
 

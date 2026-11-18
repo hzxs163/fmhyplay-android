@@ -18,11 +18,11 @@
     <string name="web_download_failed">डाउनलोड नहीं हुआ: %1$s</string>
     <string name="web_saved">%1$s डाउनलोड्स में सेव हो गया</string>
     <string name="web_reload">रीलोड करें</string>
-    <string name="web_play_native">FMHYPlayer में चलाएँ</string>
-    <string name="web_native_auto">FMHYPlayer: ऑटो (वीडियो शुरू होते ही बदल जाता है)</string>
-    <string name="web_native_off">FMHYPlayer: बंद</string>
-    <string name="web_native_off_toast">FMHYPlayer बंद</string>
-    <string name="web_native_on_toast">FMHYPlayer चालू</string>
+    <string name="web_play_native">AnantPlayer में चलाएँ</string>
+    <string name="web_native_auto">AnantPlayer: ऑटो (वीडियो शुरू होते ही बदल जाता है)</string>
+    <string name="web_native_off">AnantPlayer: बंद</string>
+    <string name="web_native_off_toast">AnantPlayer बंद</string>
+    <string name="web_native_on_toast">AnantPlayer चालू</string>
     <string name="web_use_warp">%1$s के लिए WARP इस्तेमाल करें</string>
     <string name="web_no_warp">%1$s के लिए WARP इस्तेमाल न करें</string>
     <string name="web_warp_on_site">इस साइट के लिए WARP चालू</string>
@@ -98,7 +98,7 @@
     <string name="web_pick_episode">S%1$d E%2$d: पेज पर चुनें</string>
     <string name="category_hint_tv">पसंदीदा और मिरर के लिए किसी साइट पर OK दबाए रखें</string>
     <string name="category_hint_touch">पसंदीदा और मिरर के लिए किसी साइट को देर तक दबाएँ</string>
-    <string name="category_picks">FMHY की पसंद</string>
+    <string name="category_picks">खास पसंद</string>
     <string name="category_more_lists">साइटों की और सूचियाँ</string>
     <string name="category_more_sites">और साइटें</string>
     <string name="pointer_mode_on">"पॉइंटर मोड  ·  फ़ोकस मोड के लिए OK 5 सेकंड दबाए रखें"</string>
@@ -131,4 +131,9 @@
     <string name="iptv_pinned">पिन किया: %1$s</string>
     <string name="iptv_unpinned">अनपिन किया: %1$s</string>
     <string name="title_trailer">ट्रेलर</string>
+    <string name="iptv_restore_chip">ऑफ़लाइन दिखाएँ</string>
+    <string name="iptv_restore_title">ऑफ़लाइन चैनल</string>
+    <string name="iptv_restore_all">सभी %1$d वापस लाएँ</string>
+    <string name="iptv_restored">%1$s फिर से सूची में है</string>
+    <string name="iptv_restored_all">%1$s चैनल फिर से सूची में हैं</string>
 </resources>

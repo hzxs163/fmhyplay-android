@@ -173,9 +173,9 @@ final class Chromecast implements Cast.Tv {
         if (wake != null && wake.isHeld()) wake.release();   // a new cast replaces the old one's locks
         if (wifi != null && wifi.isHeld()) wifi.release();
         if (on) {
-            wake = ((PowerManager) c.getSystemService(Context.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "fmhyplay:cast");
+            wake = ((PowerManager) c.getSystemService(Context.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "anantplay:cast");
             wake.acquire(6 * 3600 * 1000L);
-            wifi = ((WifiManager) c.getApplicationContext().getSystemService(Context.WIFI_SERVICE)).createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "fmhyplay:cast");
+            wifi = ((WifiManager) c.getApplicationContext().getSystemService(Context.WIFI_SERVICE)).createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "anantplay:cast");
             wifi.acquire();
         }
     }

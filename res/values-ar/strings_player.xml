@@ -22,10 +22,8 @@
     <string name="player_speed">السرعة</string>
     <string name="player_speed_now">السرعة · %1$s</string>
     <string name="player_zoom_fit">ملاءمة</string>
-    <string name="player_zoom_fill">ملء</string>
+    <string name="player_zoom_fill">قص</string>
     <string name="player_zoom_stretch">تمديد</string>
-    <string name="player_zoom_16_9">16:9</string>
-    <string name="player_zoom_4_3">4:3</string>
     <string name="player_zoom_now">التكبير · %1$s</string>
     <string name="player_debug_now">طبقة التصحيح: %1$s</string>
     <string name="player_zoom_say">التكبير: %1$s</string>
@@ -34,7 +32,7 @@
     <string name="player_full_screen">ملء الشاشة</string>
     <string name="player_subs_file">الترجمة %1$d (%2$s)</string>
     <string name="player_channel_offline">القناة غير متصلة (%1$s)</string>
-    <string name="player_cant_play">تعذّر على FMHYPlayer تشغيل هذا (%1$s)، جارٍ الرجوع إلى الصفحة</string>
+    <string name="player_cant_play">تعذّر على AnantPlayer تشغيل هذا (%1$s)، جارٍ الرجوع إلى الصفحة</string>
     <string name="player_resumed_at">تم الاستئناف من %1$s</string>
     <string name="player_live">مباشر</string>
     <string name="player_no_servers">لم يتم العثور على قائمة خوادم في هذه الصفحة</string>
@@ -90,9 +88,9 @@
     <string name="cast_channel">الإرسال</string>
     <string name="cast_ready">جاهز لاستقبال الإرسال من هاتفك</string>
     <string name="cast_sending_video">جارٍ إرسال فيديو إلى التلفزيون</string>
-    <string name="cast_label_app">%1$s - FMHYPlay (مُوصى به)</string>
+    <string name="cast_label_app">%1$s - AnantPlay (مُوصى به)</string>
     <string name="cast_label_chromecast">%1$s - Chromecast</string>
-    <string name="cast_blocked">لم يفتحه التلفزيون. على التلفزيون: FMHYPlay، الإعدادات، الإرسال إلى هذا التلفزيون، ثم اسمح بذلك</string>
+    <string name="cast_blocked">لم يفتحه التلفزيون. على التلفزيون: AnantPlay، الإعدادات، الإرسال إلى هذا التلفزيون، ثم اسمح بذلك</string>
     <string name="cast_tv_cant_open">تعذّر على التلفزيون فتح هذا الفيديو</string>
     <string name="cast_volume_down">الصوت −</string>
     <string name="cast_volume_up">الصوت +</string>
@@ -122,4 +120,5 @@
     <string name="player_more">المزيد</string>
     <string name="player_channels">القنوات</string>
     <string name="player_more_watch">المزيد للمشاهدة</string>
+    <string name="player_auto_up_to">تلقائي · حتى %1$s</string>
 </resources>

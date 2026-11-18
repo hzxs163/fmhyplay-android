@@ -40,7 +40,7 @@ final class Warp {
 
     /** The WARP log as text, oldest line first, with the app version and device for a bug report. */
     static String logText() {
-        StringBuilder b = new StringBuilder("FMHYPlay " + Update.installed() + ", Android " + android.os.Build.VERSION.RELEASE + ", "
+        StringBuilder b = new StringBuilder("AnantPlay " + Update.installed() + ", Android " + android.os.Build.VERSION.RELEASE + ", "
             + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL + "\nWARP " + state + (detail.isEmpty() ? "" : ": " + detail) + "\n\n");
         synchronized (history) {
             for (String l : history) b.append(l).append('\n');

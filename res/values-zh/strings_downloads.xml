@@ -42,4 +42,12 @@
     <string name="dl_folder_other">其他文件夹…</string>
     <string name="dl_folder_prompt">文件夹（Download/…、Movies/… 或 Documents/…）</string>
     <string name="dl_folder_bad">文件夹必须以 Download/、Movies/ 或 Documents/ 开头</string>
+    <string name="dl_make_seekable">转为可拖动</string>
+    <string name="dl_ts_hint">.ts 文件：播放器可能不知道它的总长度。这个按钮会把它转成能拖动的 MP4。</string>
+    <string name="dl_ts_kept">仍保存为 .ts：%1$s</string>
+    <string name="dl_converting">正在转为 MP4…</string>
+    <string name="dl_dash_pieces">下载找不到这个 DASH 流的全部分片</string>
+    <string name="dl_no_space">空间不足，无法转成 MP4（大约需要 %1$s）</string>
+    <string name="dl_dash_periods">这个 DASH 流分成多段（period），下载暂时无法合并</string>
+    <string name="dl_no_sound">这个流没有声音，不下载</string>
 </resources>

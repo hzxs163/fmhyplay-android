@@ -26,7 +26,7 @@
   };
   // Some sites ignore a click from a script (they listen for a real tap): then go to the link's address
   const open = a => {
-    if (window.FMHY && FMHY.picked) FMHY.picked();
+    if (window.AnantPlay && AnantPlay.picked) AnantPlay.picked();
     const before = location.href;
     a.click();
     setTimeout(() => { if (location.href === before) location.href = a.href; }, 1200);
@@ -52,10 +52,10 @@
     i.dispatchEvent(new Event('change', {bubbles: true}));
     ['keydown', 'keypress', 'keyup'].forEach(t => i.dispatchEvent(new KeyboardEvent(t, {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true})));
     if (i.form && i.form.requestSubmit) try { i.form.requestSubmit(); } catch (e) { }
-    if (window.FMHY && FMHY.searched) FMHY.searched();
+    if (window.AnantPlay && AnantPlay.searched) AnantPlay.searched();
   };
   const now = pick();   // already on the home page (Trending, Popular): no need to search
-  if (now) { if (window.FMHY) FMHY.searched(); open(now); return; }
+  if (now) { if (window.AnantPlay) AnantPlay.searched(); open(now); return; }
   watch();   // live results on the same page; a results page that loads anew gets this script again (pick only)
   let n = 0, opened = false;
   const timer = setInterval(() => {

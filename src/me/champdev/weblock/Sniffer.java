@@ -99,7 +99,7 @@ final class Sniffer {
     }
 
     /** Any WebView thread. */
-    // A site's own clip before the video (Cinecat's 12 s "/promo/" bumper): never the stream to hand over
+    // A site's own clip before the video (one site's 12 s "/promo/" bumper): never the stream to hand over
     static final java.util.regex.Pattern PROMO = java.util.regex.Pattern.compile("/(promo|promos|preroll|pre-roll|bumper|bumpers)/");
 
     void request(String url, Map<String, String> headers) {
@@ -137,7 +137,7 @@ final class Sniffer {
 
     private volatile Hit last;   // the newest stream the page asked for, even one held back as the old one
 
-    /** What the page plays right now, also when it was held back (a switch that did not happen): for the FMHYPlayer button. */
+    /** What the page plays right now, also when it was held back (a switch that did not happen): for the AnantPlayer button. */
     Hit lastSeen() {
         Hit b = best();
         return b != null ? b : last;

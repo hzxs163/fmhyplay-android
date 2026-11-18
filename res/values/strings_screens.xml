@@ -18,11 +18,11 @@
     <string name="web_download_failed">Download failed: %1$s</string>
     <string name="web_saved">Saved %1$s to Downloads</string>
     <string name="web_reload">Reload</string>
-    <string name="web_play_native">Play in FMHYPlayer</string>
-    <string name="web_native_auto">FMHYPlayer: auto (switches when a video starts)</string>
-    <string name="web_native_off">FMHYPlayer: off</string>
-    <string name="web_native_off_toast">FMHYPlayer off</string>
-    <string name="web_native_on_toast">FMHYPlayer on</string>
+    <string name="web_play_native">Play in AnantPlayer</string>
+    <string name="web_native_auto">AnantPlayer: auto (switches when a video starts)</string>
+    <string name="web_native_off">AnantPlayer: off</string>
+    <string name="web_native_off_toast">AnantPlayer off</string>
+    <string name="web_native_on_toast">AnantPlayer on</string>
     <string name="web_use_warp">Use WARP for %1$s</string>
     <string name="web_no_warp">Don\'t use WARP for %1$s</string>
     <string name="web_warp_on_site">WARP on for this site</string>
@@ -98,7 +98,7 @@
     <string name="web_pick_episode">S%1$d E%2$d: pick it on the page</string>
     <string name="category_hint_tv">Hold OK on a site for favorites and mirrors</string>
     <string name="category_hint_touch">Long-press a site for favorites and mirrors</string>
-    <string name="category_picks">FMHY picks</string>
+    <string name="category_picks">Picks</string>
     <string name="category_more_lists">More lists of sites</string>
     <string name="category_more_sites">More sites</string>
     <string name="pointer_mode_on">"Pointer mode  ·  hold OK 5s for focus mode"</string>
@@ -131,4 +131,9 @@
     <string name="iptv_pinned">Pinned: %1$s</string>
     <string name="iptv_unpinned">Unpinned: %1$s</string>
     <string name="title_trailer">Trailer</string>
+    <string name="iptv_restore_chip">Show offline</string>
+    <string name="iptv_restore_title">Offline channels</string>
+    <string name="iptv_restore_all">Restore all %1$d</string>
+    <string name="iptv_restored">%1$s is back in the lists</string>
+    <string name="iptv_restored_all">%1$s channels are back in the lists</string>
 </resources>

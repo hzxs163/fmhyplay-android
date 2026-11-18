@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sources_title">Fontes</string>
+    <string name="sources_hint">O AnantPlay não traz sites nem canais próprios. Adicione um índice e depois as fontes que quiser dele.</string>
+    <string name="sources_index_name">Índice do AnantPlay</string>
+    <string name="sources_index_help">As fontes que o projeto AnantPlay mantém atualizadas</string>
+    <string name="sources_index_add">Adicionar este índice</string>
+    <string name="sources_index_added">Índice adicionado</string>
+    <string name="sources_added">Adicionada</string>
+    <string name="sources_add">Adicionar</string>
+    <string name="sources_remove_index_title">Remover este índice?</string>
+    <string name="sources_remove_index_msg">%1$s e todas as fontes adicionadas a partir dele serão removidos.</string>
+    <string name="sources_loading">Carregando…</string>
+    <string name="sources_unreachable">Não foi possível carregar. Selecione para tentar de novo</string>
+    <string name="sources_unreachable_toast">Não foi possível acessar, tente mais tarde</string>
+    <string name="sources_added_toast">%1$s adicionada</string>
+    <string name="sources_newer">Precisa de uma versão mais nova do AnantPlay</string>
+    <string name="sources_title_links">Links de títulos</string>
+    <string name="sources_type_sites">Sites</string>
+    <string name="sources_type_playlist">Canais</string>
+    <string name="sources_type_deeplinks">Links de títulos</string>
+    <string name="sources_add_index">Adicionar um índice por link</string>
+    <string name="sources_add_index_help">Uma lista de fontes que alguém hospeda: um index.json ou um sources.txt antigo</string>
+    <string name="sources_none">Nenhuma fonte adicionada ainda</string>
+    <string name="sources_add_chip">Adicionar fontes</string>
+    <string name="sources_settings_help">De onde vêm os sites, canais e links de títulos</string>
+    <string name="sources_count">%1$d adicionadas</string>
+    <string name="sources_refresh">Atualizar fontes</string>
+    <string name="sources_refresh_help">Baixa a cópia mais recente de cada fonte (também a cada 12 horas).</string>
+    <string name="sources_checking">Verificando fontes…</string>
+    <string name="sources_updated">Fontes atualizadas</string>
+    <string name="sources_current">As fontes estão em dia</string>
+    <string name="sources_notice_title">O FMHYPlay agora é AnantPlay</string>
+    <string name="sources_notice_msg">Sites e canais agora vêm das fontes que você escolhe em Configurações, Fontes. As suas foram adicionadas para você.</string>
+    <string name="sources_notice_open">Abrir Fontes</string>
+</resources>

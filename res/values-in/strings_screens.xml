@@ -18,11 +18,11 @@
     <string name="web_download_failed">Unduhan gagal: %1$s</string>
     <string name="web_saved">%1$s disimpan ke Unduhan</string>
     <string name="web_reload">Muat ulang</string>
-    <string name="web_play_native">Putar di FMHYPlayer</string>
-    <string name="web_native_auto">FMHYPlayer: otomatis (beralih saat video mulai)</string>
-    <string name="web_native_off">FMHYPlayer: nonaktif</string>
-    <string name="web_native_off_toast">FMHYPlayer nonaktif</string>
-    <string name="web_native_on_toast">FMHYPlayer aktif</string>
+    <string name="web_play_native">Putar di AnantPlayer</string>
+    <string name="web_native_auto">AnantPlayer: otomatis (beralih saat video mulai)</string>
+    <string name="web_native_off">AnantPlayer: nonaktif</string>
+    <string name="web_native_off_toast">AnantPlayer nonaktif</string>
+    <string name="web_native_on_toast">AnantPlayer aktif</string>
     <string name="web_use_warp">Gunakan WARP untuk %1$s</string>
     <string name="web_no_warp">Jangan gunakan WARP untuk %1$s</string>
     <string name="web_warp_on_site">WARP aktif untuk situs ini</string>
@@ -98,7 +98,7 @@
     <string name="web_pick_episode">S%1$d E%2$d: pilih di halaman</string>
     <string name="category_hint_tv">Tahan OK pada situs untuk favorit dan mirror</string>
     <string name="category_hint_touch">Tekan lama situs untuk favorit dan mirror</string>
-    <string name="category_picks">Pilihan FMHY</string>
+    <string name="category_picks">Pilihan</string>
     <string name="category_more_lists">Daftar situs lainnya</string>
     <string name="category_more_sites">Situs lainnya</string>
     <string name="pointer_mode_on">"Mode penunjuk  ·  tahan OK 5 detik untuk mode fokus"</string>
@@ -131,4 +131,9 @@
     <string name="iptv_pinned">Disematkan: %1$s</string>
     <string name="iptv_unpinned">Sematan dilepas: %1$s</string>
     <string name="title_trailer">Trailer</string>
+    <string name="iptv_restore_chip">Tampilkan offline</string>
+    <string name="iptv_restore_title">Saluran offline</string>
+    <string name="iptv_restore_all">Pulihkan semua %1$d</string>
+    <string name="iptv_restored">%1$s kembali ke daftar</string>
+    <string name="iptv_restored_all">%1$s saluran kembali ke daftar</string>
 </resources>

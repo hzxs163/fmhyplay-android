@@ -1,6 +1,6 @@
 # Third-party software and data
 
-FMHYPlay is MIT licensed (see `LICENSE`). It includes, or downloads at build or run time, the following.
+AnantPlay is MIT licensed (see `LICENSE`). It includes, or downloads at build or run time, the following.
 
 ## Libraries in the app
 
@@ -17,15 +17,16 @@ FMHYPlay is MIT licensed (see `LICENSE`). It includes, or downloads at build or 
 
 | Source | What for |
 | --- | --- |
-| [FMHY](https://github.com/fmhy/edit) | the list of streaming sites (refreshed by the app every 12 hours) |
 | [HaGeZi DNS blocklists](https://github.com/hagezi/dns-blocklists) (GPL-3.0) | the ad and pop-up domain list (refreshed weekly) |
-| [iptv-org](https://github.com/iptv-org/iptv) | the public channel playlist on the IPTV tab |
 | [Cinemeta](https://v3-cinemeta.strem.io) | posters, titles and episode lists |
 | OpenSubtitles through the [Stremio addon](https://opensubtitles-v3.strem.io) | subtitles in the native player |
-| [Tenor](https://tenor.com)'s CDN (`media.tenor.com`) | three cat GIFs on the loading screen, fetched once and kept on the device (not bundled; they belong to their creators) |
+| [TMDB](https://www.themoviedb.org) | your country's rows (through the [TMDB Stremio addon](https://tmdb.elfhosted.com)), and the language New / Popular rows and brand pages, built daily and weekly by [AnantPlay/scraper](https://github.com/AnantPlay/scraper) |
+| [Kitsu](https://kitsu.io) | anime lists (through the [Kitsu Stremio addon](https://anime-kitsu.strem.fun)) |
 | Cloudflare WARP | the optional tunnel; registered through Cloudflare's own endpoint at first start |
 
-FMHYPlay is not affiliated with or endorsed by FMHY, Cloudflare, Tenor, Stremio, OpenSubtitles, iptv-org or any streaming site.
+Sites, channel playlists and title links come only from the sources a user adds in *Settings, Sources*; the app carries none. The list AnantPlay offers by default is [AnantPlay/index](https://github.com/AnantPlay/index).
+
+This product uses the TMDB API but is not endorsed or certified by TMDB. AnantPlay is not affiliated with or endorsed by Cloudflare, Stremio, OpenSubtitles, TMDB, Kitsu, the maintainers of any source, or any streaming site.
 
 ## Icons
 

@@ -70,7 +70,7 @@ jobs:
       - name: Point the in-app updater at this fork
         if: steps.check.outputs.skip != 'true'
         run: |
-          sed -i 's|repos/fmhyplay/android|repos/hzxs163/fmhyplay-android|' src/me/champdev/weblock/Update.java
+          sed -i -e 's|repos/AnantPlay/android|repos/hzxs163/fmhyplay-android|' -e 's|repos/fmhyplay/android|repos/hzxs163/fmhyplay-android|' src/me/champdev/weblock/Update.java
           grep -q 'hzxs163/fmhyplay-android' src/me/champdev/weblock/Update.java \
             || echo "::warning::Update.java did not contain the upstream repo path; the in-app updater may check the wrong repo"
 
@@ -113,7 +113,7 @@ jobs:
           awk -v v="$VERSION_NAME" '/^## /{p = ($2 == v); next} p' CHANGELOG.md > upstream-notes.md
           [ -s upstream-notes.md ] || echo "FMHYPlay $VERSION_NAME" > upstream-notes.md
           {
-            echo "简体中文汉化版，基于上游 [FMHYPlay $VERSION_NAME](https://github.com/fmhyplay/android/releases/tag/v$VERSION_NAME)。"
+            echo "简体中文汉化版，基于上游 [AnantPlay $VERSION_NAME](https://github.com/AnantPlay/android/releases/tag/v$VERSION_NAME)。"
             echo
             echo "- 构建时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
             echo "- 上游提交：$(git rev-parse --short upstream/main)（$(git log -1 --format=%cs upstream/main)）"
@@ -133,8 +133,8 @@ jobs:
         run: |
           TV="FMHYPlay-TV-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
           PHONE="FMHYPlay-Android-v$VERSION_NAME-R$GITHUB_RUN_NUMBER-zh.apk"
-          mv "FMHYPlay-TV-v$VERSION_NAME.apk" "$TV"
-          mv "FMHYPlay-Android-v$VERSION_NAME.apk" "$PHONE"
+          mv "AnantPlay-TV-v$VERSION_NAME.apk" "$TV"
+          mv "AnantPlay-Android-v$VERSION_NAME.apk" "$PHONE"
           cp "$TV" FMHYPlay-TV.apk
           cp "$PHONE" FMHYPlay-Android.apk
           sha256sum FMHYPlay-*.apk | tee SHA256SUMS.txt

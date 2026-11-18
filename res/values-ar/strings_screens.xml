@@ -18,11 +18,11 @@
     <string name="web_download_failed">فشل التنزيل: %1$s</string>
     <string name="web_saved">تم حفظ %1$s في التنزيلات</string>
     <string name="web_reload">إعادة التحميل</string>
-    <string name="web_play_native">التشغيل في FMHYPlayer</string>
-    <string name="web_native_auto">FMHYPlayer: تلقائي (يتحوّل عند بدء الفيديو)</string>
-    <string name="web_native_off">FMHYPlayer: معطّل</string>
-    <string name="web_native_off_toast">تم إيقاف FMHYPlayer</string>
-    <string name="web_native_on_toast">تم تشغيل FMHYPlayer</string>
+    <string name="web_play_native">التشغيل في AnantPlayer</string>
+    <string name="web_native_auto">AnantPlayer: تلقائي (يتحوّل عند بدء الفيديو)</string>
+    <string name="web_native_off">AnantPlayer: معطّل</string>
+    <string name="web_native_off_toast">تم إيقاف AnantPlayer</string>
+    <string name="web_native_on_toast">تم تشغيل AnantPlayer</string>
     <string name="web_use_warp">استخدام WARP مع %1$s</string>
     <string name="web_no_warp">عدم استخدام WARP مع %1$s</string>
     <string name="web_warp_on_site">تم تفعيل WARP لهذا الموقع</string>
@@ -98,7 +98,7 @@
     <string name="web_pick_episode">S%1$d E%2$d: اخترها في الصفحة</string>
     <string name="category_hint_tv">اضغط مع الاستمرار على OK فوق موقع للمفضلة والمواقع البديلة</string>
     <string name="category_hint_touch">اضغط مع الاستمرار على موقع للمفضلة والمواقع البديلة</string>
-    <string name="category_picks">اختيارات FMHY</string>
+    <string name="category_picks">اختيارات مميزة</string>
     <string name="category_more_lists">قوائم مواقع أخرى</string>
     <string name="category_more_sites">مواقع أخرى</string>
     <string name="pointer_mode_on">"وضع المؤشر  ·  اضغط مع الاستمرار على OK لمدة 5 ثوانٍ لوضع التركيز"</string>
@@ -131,4 +131,9 @@
     <string name="iptv_pinned">تم التثبيت: %1$s</string>
     <string name="iptv_unpinned">تم إلغاء التثبيت: %1$s</string>
     <string name="title_trailer">الإعلان</string>
+    <string name="iptv_restore_chip">إظهار غير المتصلة</string>
+    <string name="iptv_restore_title">القنوات غير المتصلة</string>
+    <string name="iptv_restore_all">استعادة الكل %1$d</string>
+    <string name="iptv_restored">عادت %1$s إلى القوائم</string>
+    <string name="iptv_restored_all">عادت %1$s قناة إلى القوائم</string>
 </resources>

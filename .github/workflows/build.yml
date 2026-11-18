@@ -52,12 +52,12 @@ jobs:
 
       - name: Check the APKs
         run: |
-          for f in FMHYPlay-*.apk; do
+          for f in AnantPlay-*.apk; do
             "$ANDROID_HOME"/build-tools/35.0.0/apksigner verify --print-certs "$f" | grep -E "Signer #1 certificate (DN|SHA-256)"
           done
 
       - uses: actions/upload-artifact@v4
         with:
           name: apks
-          path: FMHYPlay-*.apk
+          path: AnantPlay-*.apk
           if-no-files-found: error

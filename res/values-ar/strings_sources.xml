@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sources_title">المصادر</string>
+    <string name="sources_hint">لا يأتي AnantPlay بمواقع أو قنوات خاصة به. أضف فهرسًا، ثم المصادر التي تريدها منه.</string>
+    <string name="sources_index_name">فهرس AnantPlay</string>
+    <string name="sources_index_help">المصادر التي يحدّثها مشروع AnantPlay</string>
+    <string name="sources_index_add">إضافة هذا الفهرس</string>
+    <string name="sources_index_added">تمت إضافة الفهرس</string>
+    <string name="sources_added">مُضاف</string>
+    <string name="sources_add">إضافة</string>
+    <string name="sources_remove_index_title">إزالة هذا الفهرس؟</string>
+    <string name="sources_remove_index_msg">ستتم إزالة %1$s وكل مصدر أُضيف منه.</string>
+    <string name="sources_loading">جارٍ التحميل…</string>
+    <string name="sources_unreachable">تعذّر التحميل. اختر للمحاولة مرة أخرى</string>
+    <string name="sources_unreachable_toast">تعذّر الوصول، حاول لاحقًا</string>
+    <string name="sources_added_toast">تمت إضافة %1$s</string>
+    <string name="sources_newer">يحتاج إلى إصدار أحدث من AnantPlay</string>
+    <string name="sources_title_links">روابط العناوين</string>
+    <string name="sources_type_sites">مواقع</string>
+    <string name="sources_type_playlist">قنوات</string>
+    <string name="sources_type_deeplinks">روابط العناوين</string>
+    <string name="sources_add_index">إضافة فهرس عبر رابط</string>
+    <string name="sources_add_index_help">قائمة مصادر يستضيفها شخص ما: ملف index.json أو ملف sources.txt أقدم</string>
+    <string name="sources_none">لم تتم إضافة مصادر بعد</string>
+    <string name="sources_add_chip">إضافة مصادر</string>
+    <string name="sources_settings_help">من أين تأتي المواقع والقنوات وروابط العناوين</string>
+    <string name="sources_count">%1$d مُضاف</string>
+    <string name="sources_refresh">تحديث المصادر</string>
+    <string name="sources_refresh_help">ينزّل أحدث نسخة من كل مصدر (وكل 12 ساعة أيضًا).</string>
+    <string name="sources_checking">جارٍ فحص المصادر…</string>
+    <string name="sources_updated">تم تحديث المصادر</string>
+    <string name="sources_current">المصادر محدّثة</string>
+    <string name="sources_notice_title">أصبح FMHYPlay الآن AnantPlay</string>
+    <string name="sources_notice_msg">تأتي المواقع والقنوات الآن من مصادر تختارها في الإعدادات، المصادر. أُضيفت مصادرك لك.</string>
+    <string name="sources_notice_open">فتح المصادر</string>
+</resources>

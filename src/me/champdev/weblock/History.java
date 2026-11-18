@@ -33,6 +33,7 @@ final class History {
         long pos, dur;          // where the native player left off (ms), and the video's length; 0 = from the start
         long posAt;             // when pos was saved: the newest one wins across sites
         String posEpisode = ""; // the episode `pos` belongs to: a new episode starts from the beginning
+        boolean done;           // that episode was watched to the credits (pos is 0 then, as it is for one just started)
     }
 
     static boolean isContent(String url) {
@@ -57,6 +58,7 @@ final class History {
                 e.pos = o.optLong("pos");
                 e.dur = o.optLong("dur");
                 e.posEpisode = o.optString("posEp");
+                e.done = o.optBoolean("done");
                 e.posAt = o.optLong("posAt");
                 out.add(e);
             }
@@ -70,7 +72,7 @@ final class History {
             for (Entry e : list.subList(0, Math.min(MAX, list.size())))
                 a.put(new JSONObject().put("site", e.site).put("siteUrl", e.siteUrl).put("title", e.title).put("url", e.url)
                     .put("image", e.image).put("episode", e.episode).put("time", e.time)
-                    .put("pos", e.pos).put("dur", e.dur).put("posEp", e.posEpisode).put("posAt", e.posAt));
+                    .put("pos", e.pos).put("dur", e.dur).put("posEp", e.posEpisode).put("posAt", e.posAt).put("done", e.done));
         } catch (JSONException ignored) { }
         App.prefs.edit().putString("history", a.toString()).apply();
     }
@@ -136,6 +138,7 @@ final class History {
         if (e == null) return;
         boolean done = dur > 0 && pos > dur - 120000;   // the credits: next time starts over
         e.pos = done || pos < 10000 ? 0 : pos;
+        e.done = done;
         e.dur = dur;
         e.posEpisode = episode(String.valueOf(url), rawTitle);
         e.posAt = System.currentTimeMillis();
@@ -156,6 +159,32 @@ final class History {
         return best == null ? 0 : best.pos;
     }
 
+    /**
+     * The episode to start a series from: where it was last watched (on any site; `list` is newest first), or the next one when that was
+     * watched to the end. {season, number} out of `episodes` (the same pairs); null when it was never watched or that episode is not in them.
+     */
+    static int[] resume(List<Entry> list, String title, List<int[]> episodes) {
+        String key = same(title);
+        for (Entry e : list) {
+            if (e.episode == null || !same(e.title).equals(key)) continue;
+            Matcher m = SEASON_EP.matcher(e.episode);
+            if (!m.find()) continue;
+            int season = m.group(1) == null ? 0 : Integer.parseInt(m.group(1)), number = Integer.parseInt(m.group(2));
+            int[] at = null;   // no season in the page's own words: the first season that has that number
+            for (int[] x : episodes) if (x[1] == number && (season == 0 ? at == null || x[0] < at[0] : x[0] == season)) at = x;
+            if (at == null) return null;
+            if (e.done && e.posEpisode.equals(e.episode)) {
+                int[] next = null;
+                for (int[] x : episodes) if ((x[0] > at[0] || x[0] == at[0] && x[1] > at[1]) && (next == null || x[0] < next[0] || x[0] == next[0] && x[1] < next[1])) next = x;
+                if (next != null) return next;
+            }
+            return at;
+        }
+        return null;
+    }
+
+    static final Pattern SEASON_EP = Pattern.compile("(?:S(\\d+)\\s*)?E(\\d+)");   // "S2 E4" or "E7", as episode() writes it
+
     static boolean isTmdb(String url) {
         return url.contains("image.tmdb.org") || url.contains("/t/p/");
     }
@@ -166,7 +195,7 @@ final class History {
         save(list);
     }
 
-    /** "Watch Breaking Bad Online Free | Flixer" -> "Breaking Bad" */
+    /** "Watch Breaking Bad Online Free | SiteName" -> "Breaking Bad" */
     static String cleanTitle(String t, String site) {
         String best = "";
         for (String part : t.split("\\s+[|–—•·-]\\s+")) {

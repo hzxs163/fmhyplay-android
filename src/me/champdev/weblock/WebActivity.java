@@ -74,21 +74,21 @@ public class WebActivity extends Activity {
     // The chip that takes you back to the native player after Back
     // The Native player button: on the site's own player (the biggest video, else the biggest frame), top left, scrolling with it;
     // a tab on the right edge when there is no player to sit on
-    // It carries the app's icon (drawn inline, so a site's image rules can't block it) and the name FMHYPlayer.
+    // It carries the app's icon (drawn inline, so a site's image rules can't block it) and the name AnantPlayer.
     static final String ICON_SVG = "<svg width=\"20\" height=\"20\" viewBox=\"0 0 108 108\" style=\"display:block\"><defs>"
         + "<linearGradient id=\"fpbg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2E1A44\"/><stop offset=\"1\" stop-color=\"#110D18\"/></linearGradient>"
         + "<linearGradient id=\"fppl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FF6A85\"/><stop offset=\"1\" stop-color=\"#FF2E58\"/></linearGradient></defs>"
         + "<rect width=\"108\" height=\"108\" rx=\"26\" fill=\"url(#fpbg)\"/><circle cx=\"54\" cy=\"54\" r=\"30\" fill=\"none\" stroke=\"#FF3B5C\" stroke-opacity=\".4\" stroke-width=\"2.5\"/>"
         + "<path d=\"M46 38V70L72 54Z\" fill=\"url(#fppl)\" stroke=\"#FF3B5C\" stroke-width=\"6\" stroke-linejoin=\"round\"/></svg>";
-    static final String CHIP = "(()=>{if(document.getElementById('fp-native'))return;const b=document.createElement('button');b.id='fp-native';b.title='FMHYPlayer';"
-        + "try{b.innerHTML=" + JSONObject.quote(ICON_SVG) + "+'<span>FMHYPlayer</span>'}catch(x){b.textContent='\\u25B6 FMHYPlayer'}"
+    static final String CHIP = "(()=>{if(document.getElementById('fp-native'))return;const b=document.createElement('button');b.id='fp-native';b.title='AnantPlayer';"
+        + "try{b.innerHTML=" + JSONObject.quote(ICON_SVG) + "+'<span>AnantPlayer</span>'}catch(x){b.textContent='\\u25B6 AnantPlayer'}"
         + "b.style.cssText='z-index:2147483647;display:flex;align-items:center;gap:7px;padding:5px 11px 5px 6px;font:600 13px sans-serif;color:#fff;background:rgba(22,15,32,.92);border:1px solid #ff3b5c;border-radius:9px;box-shadow:0 2px 8px rgba(0,0,0,.45)';"
         + "const big=sel=>{let best=null,area=0;for(const e of document.querySelectorAll(sel)){const r=e.getBoundingClientRect();if(r.width>=160&&r.height>=90&&r.width*r.height>area){area=r.width*r.height;best=r}}return best};"
         + "const place=()=>{const r=big('video')||big('iframe');const s=b.style;"
         + "if(r){s.position='absolute';s.top=(r.top+scrollY+8)+'px';s.left=(r.left+scrollX+8)+'px';s.right='';s.transform='';s.borderRadius='8px'}"
         + "else{s.position='fixed';s.top='50%';s.left='';s.right='0';s.transform='translateY(-50%)';s.borderRadius='10px 0 0 10px'}};"
         + "place();const t=setInterval(()=>{if(!document.contains(b))clearInterval(t);else place()},1000);"
-        + "b.onclick=e=>{e.stopPropagation();FMHY.openNative()};document.documentElement.appendChild(b)})()";
+        + "b.onclick=e=>{e.stopPropagation();AnantPlay.openNative()};document.documentElement.appendChild(b)})()";
     // Remember <a download="name"> so blob downloads keep the page's filename
     static final String DL_HOOK = "if(!window.__wl){window.__wl=1;const c=HTMLAnchorElement.prototype.click;"
         + "HTMLAnchorElement.prototype.click=function(){window.__dl=this.download;return c.call(this)};"
@@ -100,7 +100,7 @@ public class WebActivity extends Activity {
         + "if(im)src=im.currentSrc||im.src;else{const u=/url\\([\"']?([^\"')]+)/.exec(getComputedStyle(el).backgroundImage);if(u&&tm(u[1]))src=u[1]}}"
         + "if(!src){let best=0;for(const m of document.images){const r=m.getBoundingClientRect(),s2=m.currentSrc||m.src;"
         + "if(tm(s2)&&r.bottom>0&&r.top<innerHeight&&r.width*r.height>best){best=r.width*r.height;src=s2}}}"
-        + "if(src)FMHY.poster(new URL(src,location.href).href)},true)}";
+        + "if(src)AnantPlay.poster(new URL(src,location.href).href)},true)}";
     // A WebView built on the application context has no window, so Chromium can't draw its own <select>
     // popup. Intercept the tap here and let the activity list the options in an AlertDialog instead.
     static final String SELECT_HOOK = "(()=>{if(window!==top||window.__fpSel)return;window.__fpSel=1;const pend=new Map();let seq=0;"
@@ -111,7 +111,7 @@ public class WebActivity extends Activity {
         + "if(!s||s.disabled||s.multiple||s.size>1||s.options.length<2)return;ev.preventDefault();ev.stopPropagation();"
         + "const items=[];for(const o of s.options){const g=o.parentElement&&o.parentElement.tagName==='OPTGROUP'?(o.parentElement.label||''):'';items.push({t:(o.textContent||'').trim(),g:g})}"
         + "const id=++seq;pend.set(id,s);const lab=s.getAttribute('aria-label')||s.title||'';"
-        + "try{FMHY.select(JSON.stringify({id:id,items:items,cur:s.selectedIndex,title:lab}))}catch(x){}},true)})()";
+        + "try{AnantPlay.select(JSON.stringify({id:id,items:items,cur:s.selectedIndex,title:lab}))}catch(x){}},true)})()";
     // Page title and its poster for Continue watching: a TMDB poster/backdrop (what these sites use) wins,
     // then the biggest picture or CSS background on screen, then og:image
     static final String CAPTURE = "(()=>{const m=n=>(document.querySelector(`meta[property=\"${n}\"],meta[name=\"${n}\"]`)||{}).content||'';"
@@ -147,7 +147,6 @@ public class WebActivity extends Activity {
     int[] pendingEpisode;      // {season, episode} picked in the player's Episodes list, opened when the page is back
     View opening;              // the backdrop (poster, title, what the app is doing now) while it drives the page
     TextView openingText;
-    GifView openingGif;
     boolean pageError;         // the page just loaded was an error page
     boolean okOnScreen;        // an OK press began while the backdrop was up: its release takes the backdrop down
     boolean dismissed;         // you looked at the page (or it gave up, or the player took over): the backdrop stays down until the app starts something new
@@ -172,7 +171,7 @@ public class WebActivity extends Activity {
             JSONObject o = new JSONObject(new JSONArray("[" + json + "]").getString(0));
             String image = o.optString("image");
             if (!History.isTmdb(image) && lastPoster != null && SystemClock.uptimeMillis() - lastPosterAt < 180000) image = lastPoster;
-            // Opened from the catalog: its poster, while the page is that title (sites like Movy have none of their own)
+            // Opened from the catalog: its poster, while the page is that title (some sites have none of their own)
             String name = getIntent().getStringExtra("name"), poster = getIntent().getStringExtra("poster");
             if (!History.isTmdb(image) && name != null && poster != null && poster.startsWith("http")
                 && History.same(History.titleOf(o.optString("title"), site)).equals(History.same(name))) image = poster;
@@ -372,12 +371,7 @@ public class WebActivity extends Activity {
         head.setPadding(Home.dp(this, 24), 0, Home.dp(this, 24), Home.dp(this, 20));
         head.setText(name == null || name.isEmpty() ? String.valueOf(site) : name);
         wait.addView(head);
-        ProgressBar spin = new ProgressBar(this);   // until the picture of the state is here
-        spin.setIndeterminateTintList(ColorStateList.valueOf(Home.ACCENT));
-        wait.addView(spin, new LinearLayout.LayoutParams(Home.dp(this, 44), Home.dp(this, 44)));
-        openingGif = new GifView(this, spin);
-        int box = Home.dp(this, App.tv ? 190 : 140);   // every cat the same square, whatever the picture's shape
-        wait.addView(openingGif, new LinearLayout.LayoutParams(box, box));
+        wait.addView(new Home.Spinner(this), new LinearLayout.LayoutParams(Home.dp(this, 44), Home.dp(this, 44)));
         openingText = new TextView(this);
         openingText.setTextColor(Home.TEXT);
         openingText.setTextSize(App.tv ? 20 : 17);
@@ -395,8 +389,8 @@ public class WebActivity extends Activity {
         root.addView(wait, new FrameLayout.LayoutParams(-1, -1));
         // Anything the app drives from the start (the title's own page, a search for it, an episode) is behind the backdrop from the first frame
         if (playAfterLoad || pendingQuery != null || (show != null && show.series() && getIntent().getIntExtra("episode", 0) > 0))
-            step("load", App.t(Warp.state == Warp.State.CONNECTING ? R.string.web_connecting_warp : R.string.web_step_loading), null);
-        if (!App.tv) addHomeButton(root);   // in the address bar row; a TV has Menu, Back to home
+            step(App.t(Warp.state == Warp.State.CONNECTING ? R.string.web_connecting_warp : R.string.web_step_loading), null);
+        if (!App.tv) addHomeButton(root);   // top right, where the player has it too; a TV has Menu, Back to home
         setContentView(root);
         // 90/120 Hz phones would repaint an animated page twice as often for no visible gain: ask for 60 (less heat)
         android.view.WindowManager.LayoutParams wp = getWindow().getAttributes();
@@ -460,7 +454,7 @@ public class WebActivity extends Activity {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
                 sniffer.request(r.getUrl().toString(), r.getRequestHeaders());
                 String host = r.getUrl().getHost();
-                if (host == null || r.isForMainFrame() || !AdBlock.enabled() || sameSite("https://" + host, siteUrl) || !AdBlock.blocked(host, r.getUrl().getPath())) return null;
+                if (host == null || r.isForMainFrame() || !AdBlock.enabled() || sameSite("https://" + host, siteUrl) || playerAd(host) || !AdBlock.blocked(host, r.getUrl().getPath())) return null;
                 return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
             }
 
@@ -468,7 +462,7 @@ public class WebActivity extends Activity {
 
             @Override public void doUpdateVisitedHistory(WebView v, String url, boolean reload) {
                 mainNavAt = SystemClock.uptimeMillis();
-                if (!Sniffer.path(url).equals(Sniffer.path(String.valueOf(audiosAt)))) audios.clear();   // another episode or title
+                if (!Sniffer.path(url).equals(Sniffer.path(String.valueOf(audiosAt)))) { audios.clear(); servers.clear(); qualities.clear(); }   // another episode or title
                 audiosAt = url;
                 if (urlBar != null) urlBar.setText(url);
                 sniffer.page(url);
@@ -484,11 +478,11 @@ public class WebActivity extends Activity {
                 if (spatnav != null && !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) v.evaluateJavascript(spatnav, null);
                 if (pointer != null && pointer.on) v.evaluateJavascript("window.__fpClear&&__fpClear()", null);
                 String q = pendingQuery;
-                if (q != null && searchTries++ < 4) { step("load", App.t(R.string.web_step_search), null); autosearch(v, q, false); }
-                else if (pendingPick != null && searchTries++ < 8) { step("load", App.t(R.string.web_step_search), null); autosearch(v, pendingPick, true); }   // a results page that loaded anew
+                if (q != null && searchTries++ < 4) { step(App.t(R.string.web_step_search), null); autosearch(v, q, false); }
+                else if (pendingPick != null && searchTries++ < 8) { step(App.t(R.string.web_step_search), null); autosearch(v, pendingPick, true); }   // a results page that loaded anew
                 if (playAfterLoad) {
                     playAfterLoad = false;
-                    step("load", App.t(R.string.web_step_play), sorry());
+                    step(App.t(R.string.web_step_play), sorry());
                     // twice: single-page players set themselves up a few seconds after the load; never once a stream is found
                     for (long at : new long[]{2500, 6000}) App.main.postDelayed(() -> { if (!sniffer.has() && !isFinishing()) v.evaluateJavascript("postMessage({fp:'play'},'*')", null); }, at);
                 }
@@ -513,11 +507,11 @@ public class WebActivity extends Activity {
         });
         web.setWebChromeClient(chrome);
         web.setDownloadListener(this::download);
-        web.addJavascriptInterface(new Bridge(), "FMHY");
+        web.addJavascriptInterface(new Bridge(), "AnantPlay");
 
         // assets/frame.js: pauses the page's players and finds its server list, in every frame
         try {
-            String frameHook = Sites.readAll(getAssets().open("frame.js"));
+            String frameHook = "window.__apLate=" + Sites.lateHosts() + ";" + Sites.readAll(getAssets().open("frame.js"));
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
                 WebViewCompat.addDocumentStartJavaScript(web, frameHook, Collections.singleton("*"));
         } catch (IOException ignored) { }
@@ -541,7 +535,7 @@ public class WebActivity extends Activity {
         if (Warp.state == Warp.State.CONNECTING) status.setText(App.t(R.string.web_connecting_warp));
         Warp.whenSettled(() -> {
             status.setVisibility(View.GONE);
-            if (opening.getVisibility() == View.VISIBLE) step("load", App.t(R.string.web_step_loading), null);
+            if (opening.getVisibility() == View.VISIBLE) step(App.t(R.string.web_step_loading), null);
             if (Warp.state == Warp.State.FAILED) toast(App.t(R.string.web_warp_failed));
             // The page loads once the route is really set (it is set here, not at app start)
             Warp.route(!Warp.bypassed(siteOf(String.valueOf(Uri.parse(siteUrl).getHost()))), () -> {
@@ -565,11 +559,12 @@ public class WebActivity extends Activity {
     // A stream just appeared: look for the page's server list now, while the page is still awake
     void onSeen() {
         if (!resumed || isFinishing()) return;
-        servers.clear();
-        qualities.clear();   // Sub / Dub stays until the page changes: a scan right after a switch may miss its menu
+        // the lists are not emptied here: a site that starts two streams (Bingr) emptied them after the first scan answered, and the
+        // second answer came after the player had paused the page. The first answer to this scan replaces them instead (Bridge.servers)
         scanDone = false;
+        scanGen++;
         web.evaluateJavascript(CHIP, null);   // a stream is here: the button stays until the player takes it, or for you to press
-        web.evaluateJavascript("postMessage({fp:'servers'},'*')", null);
+        web.evaluateJavascript("postMessage({fp:'servers',gen:" + scanGen + "},'*')", null);
     }
 
     // Hand the stream over, but let the server scan finish first (it needs the page awake; the player pauses it), at most 3 s (a Servers menu takes a second to open)
@@ -577,12 +572,13 @@ public class WebActivity extends Activity {
         if (!resumed || isFinishing()) return;
         if (!App.prefs.getBoolean("native", true)) { hideOpening(); web.evaluateJavascript(CHIP, null); return; }
         if (holdForEpisode) return;   // picking the episode on the page: its stream comes next
-        step("done", App.t(R.string.web_step_done), sorry());   // the stream is found: the player is next
+        step(App.t(R.string.web_step_done), sorry());   // the stream is found: the player is next
         if (scanDone) playNative(); else { handoffWaiting = true; App.main.postDelayed(waitedHandoff, 3000); }
     }
 
     // (not Handler.hasCallbacks: it needs Android 10 and the app runs on 8 and 9)
     volatile boolean handoffWaiting;
+    int scanGen, listsGen;   // the newest scan asked for, and the scan the Servers / Quality lists come from
     final Runnable waitedHandoff = () -> { handoffWaiting = false; if (resumed && !isFinishing() && !holdForEpisode && sniffer.best() != null) playNative(); };
 
     void playNative() {
@@ -599,7 +595,7 @@ public class WebActivity extends Activity {
         if (origin == null && ref != null && !originOf(ref).equals(originOf(h.url))) origin = originOf(ref);
         if (origin != null) hd.put("Origin", origin);
         // Keep the page's own player quiet underneath
-        web.evaluateJavascript("postMessage({fp:'pause'},'*');document.querySelectorAll('video,audio').forEach(m=>m.pause());var c=document.getElementById('fp-native');c&&c.remove()", null);
+        web.evaluateJavascript("postMessage({fp:'pause',hold:1},'*');document.querySelectorAll('video,audio').forEach(m=>m.pause());var c=document.getElementById('fp-native');c&&c.remove()", null);
         Intent in = getIntent();
         startActivityForResult(PlayerActivity.open(this, h.url, h.dash, hd, sniffer.subtitles(), String.valueOf(web.getTitle()))
             .putExtra("pageTitle", String.valueOf(web.getTitle())).putExtra("pageUrl", String.valueOf(web.getUrl())).putExtra("site", site)
@@ -619,7 +615,10 @@ public class WebActivity extends Activity {
      * before, press it now, before the stream goes to the player. If the stream does not change in a few seconds, put it back.
      */
     boolean tryPreferredAudio() {
-        String want = App.prefs.getString("siteAudio:" + siteKey(), ""), url = String.valueOf(web.getUrl());
+        String picked = App.prefs.getString("siteAudio:" + siteKey(), ""), url = String.valueOf(web.getUrl());
+        // never picked on this site: the audio language from Settings (a site's English / Hindi / ... list)
+        if (picked.isEmpty()) for (String[] v : audios.values()) if (PlayerActivity.preferredLanguage(v[0])) { picked = v[0]; break; }
+        final String want = picked;
         if (want.isEmpty() || audios.size() < 2 || url.equals(audioTriedAt) || want.equals(audioNoop) || PlayerActivity.current != null) return false;
         audioTriedAt = url;
         String wantKey = null, nowKey = null;
@@ -651,7 +650,7 @@ public class WebActivity extends Activity {
     void openEpisode(int season, int episode, String fallback) {
         getIntent().putExtra("season", season).putExtra("episode", episode);
         dismissed = false;   // a new episode: the backdrop again
-        step("load", App.t(R.string.web_opening_episode, season, episode), App.t(R.string.web_pick_episode, season, episode));
+        step(App.t(R.string.web_opening_episode, season, episode), App.t(R.string.web_pick_episode, season, episode));
         Catalog.Title t = show;
         String here = web.getUrl(), hereTitle = String.valueOf(web.getTitle());   // read here: the lookup below runs off the main thread
         String audio = App.prefs.getString("siteAudio:" + siteKey(), "").toLowerCase(java.util.Locale.ROOT).contains("dub") ? "dub" : "sub";
@@ -754,6 +753,12 @@ public class WebActivity extends Activity {
     }
 
     // ponytail: "site" = last two host labels, so example.co.uk counts every *.co.uk as one site
+    /** MissAV's player asks its ad host for what it needs before the stream starts; an empty answer leaves a dead player. */
+    boolean playerAd(String host) {
+        String page = Uri.parse(String.valueOf(siteUrl)).getHost();
+        return host != null && page != null && page.toLowerCase().contains("missav") && host.toLowerCase().endsWith("twinrdengine.com");
+    }
+
     static boolean sameSite(String a, String b) {
         if (a == null || b == null) return false;
         String ha = Uri.parse(a).getHost(), hb = Uri.parse(b).getHost();
@@ -809,7 +814,7 @@ public class WebActivity extends Activity {
         if (url.startsWith("blob:") || url.startsWith("data:")) {
             // DownloadManager can't fetch these; read them in the page and hand bytes to Bridge.save
             web.evaluateJavascript("fetch(" + JSONObject.quote(url) + ").then(r=>r.blob()).then(b=>{const f=new FileReader();"
-                + "f.onload=()=>{FMHY.save(f.result,window.__dl||" + JSONObject.quote(name) + ");window.__dl=''};f.readAsDataURL(b)})", null);
+                + "f.onload=()=>{AnantPlay.save(f.result,window.__dl||" + JSONObject.quote(name) + ");window.__dl=''};f.readAsDataURL(b)})", null);
             return;
         }
         try {
@@ -826,7 +831,7 @@ public class WebActivity extends Activity {
         }
     }
 
-    /** Types the title into the site's search box (assets/autosearch.js); the page calls FMHY.searched() once it has. */
+    /** Types the title into the site's search box (assets/autosearch.js); the page calls AnantPlay.searched() once it has. */
     void autosearch(WebView v, String q, boolean pickOnly) {
         java.util.regex.Matcher y = java.util.regex.Pattern.compile("\\d{4}").matcher(String.valueOf(getIntent().getStringExtra("year")));
         try {
@@ -836,11 +841,13 @@ public class WebActivity extends Activity {
 
     public class Bridge {
         // A frame found server buttons: keep them for the native player's Servers list
-        @JavascriptInterface public void servers(String json) {
+        @JavascriptInterface public void servers(String json, int gen) {
             try {
                 JSONArray a = new JSONArray(json);
                 App.main.post(() -> {
                     try {
+                        if (gen < listsGen) return;   // an answer to an older scan
+                        if (gen > listsGen) { servers.clear(); qualities.clear(); listsGen = gen; }   // the first answer to a newer one starts the lists afresh
                         for (int i = 0; i < a.length(); i++) if ("a".equals(a.getJSONObject(i).optString("kind"))) { audios.clear(); break; }   // a fresh Sub / Dub list
                         for (int i = 0; i < a.length(); i++) {
                             JSONObject o = a.getJSONObject(i);
@@ -864,7 +871,7 @@ public class WebActivity extends Activity {
         @JavascriptInterface public void episodeFound() {
             episodeFound = true;
             runOnUiThread(() -> {
-                step("load", App.t(R.string.web_step_play), sorry());
+                step(App.t(R.string.web_step_play), sorry());
                 if (!holdForEpisode) return;
                 holdForEpisode = false;
                 sniffer.switching();   // the first episode's stream is not the one: wait for the picked one's
@@ -894,7 +901,7 @@ public class WebActivity extends Activity {
                 int[] ep = episodeAfterLoad;
                 if (ep == null) { hideOpening(); return; }   // the title's page: the rest is yours
                 episodeAfterLoad = null;
-                step("load", App.t(R.string.web_opening_episode, ep[0], ep[1]), App.t(R.string.web_pick_episode, ep[0], ep[1]));
+                step(App.t(R.string.web_opening_episode, ep[0], ep[1]), App.t(R.string.web_pick_episode, ep[0], ep[1]));
                 App.main.postDelayed(() -> pressEpisode(ep[0], ep[1]), 4000);
             });
         }
@@ -1091,9 +1098,8 @@ public class WebActivity extends Activity {
      * The backdrop goes up (or says the next thing the app is doing) and the 40 s wait starts over; if nothing moves on it comes down
      * by itself, with `giveUp` as a note. Not after you looked at the page, until the app starts something new.
      */
-    void step(String gif, String text, String giveUp) {
+    void step(String text, String giveUp) {
         if (dismissed || opening == null) return;
-        if (!gif.equals(openingGif.want)) openingGif.play(gif);
         openingText.setText(text);
         opening.setVisibility(View.VISIBLE);
         App.main.removeCallbacks(openingGiveUp);
@@ -1101,11 +1107,10 @@ public class WebActivity extends Activity {
         App.main.postDelayed(openingGiveUp, 40000);
     }
 
-    /** Stuck: the staring cat says so for a few seconds, then the page is yours (the note is also a toast when no backdrop is up). */
+    /** Stuck: the backdrop says so for a few seconds, then the page is yours (the note is also a toast when no backdrop is up). */
     void fail(String note) {
         if (isFinishing()) return;
         if (opening.getVisibility() != View.VISIBLE) { if (note != null) toast(note); return; }
-        openingGif.play("fail");
         openingText.setText(note != null ? note : App.t(R.string.web_step_failed));
         App.main.removeCallbacks(openingGiveUp);
         openingGiveUp = this::hideOpening;
@@ -1188,6 +1193,8 @@ public class WebActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         resumed = true;
+        // the player asked for another server or episode: the page's own player may play again (it was held while the app's played)
+        if (pendingEpisode != null || pendingServer != null) web.evaluateJavascript("postMessage({fp:'release'},'*')", null);
         if (pendingEpisode != null) {
             int[] ep = pendingEpisode;
             pendingEpisode = null;
@@ -1197,7 +1204,7 @@ public class WebActivity extends Activity {
             String k = pendingServer;
             pendingServer = null;
             dismissed = false;
-            step("load", App.t(R.string.web_step_play), null);
+            step(App.t(R.string.web_step_play), null);
             sniffer.fresh();
             web.evaluateJavascript(clickJs(k), null);
         }
@@ -1216,7 +1223,7 @@ public class WebActivity extends Activity {
         if (fullscreen != null) chrome.onHideCustomView();
         if (pointer != null) pointer.release();
         web.stopLoading();
-        web.removeJavascriptInterface("FMHY");
+        web.removeJavascriptInterface("AnantPlay");
         web.setWebChromeClient(null);
         web.setWebViewClient(new WebViewClient());
         web.setDownloadListener(null);

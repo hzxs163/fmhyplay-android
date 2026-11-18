@@ -18,11 +18,11 @@
     <string name="web_download_failed">Falha no download: %1$s</string>
     <string name="web_saved">%1$s salvo em Downloads</string>
     <string name="web_reload">Recarregar</string>
-    <string name="web_play_native">Reproduzir no FMHYPlayer</string>
-    <string name="web_native_auto">FMHYPlayer: automático (troca quando um vídeo começa)</string>
-    <string name="web_native_off">FMHYPlayer: desligado</string>
-    <string name="web_native_off_toast">FMHYPlayer desligado</string>
-    <string name="web_native_on_toast">FMHYPlayer ligado</string>
+    <string name="web_play_native">Reproduzir no AnantPlayer</string>
+    <string name="web_native_auto">AnantPlayer: automático (troca quando um vídeo começa)</string>
+    <string name="web_native_off">AnantPlayer: desligado</string>
+    <string name="web_native_off_toast">AnantPlayer desligado</string>
+    <string name="web_native_on_toast">AnantPlayer ligado</string>
     <string name="web_use_warp">Usar WARP em %1$s</string>
     <string name="web_no_warp">Não usar WARP em %1$s</string>
     <string name="web_warp_on_site">WARP ligado para este site</string>
@@ -98,7 +98,7 @@
     <string name="web_pick_episode">T%1$d E%2$d: escolha na página</string>
     <string name="category_hint_tv">Segure OK em um site para favoritos e espelhos</string>
     <string name="category_hint_touch">Toque e segure um site para favoritos e espelhos</string>
-    <string name="category_picks">Escolhas do FMHY</string>
+    <string name="category_picks">Destaques</string>
     <string name="category_more_lists">Mais listas de sites</string>
     <string name="category_more_sites">Mais sites</string>
     <string name="pointer_mode_on">"Modo ponteiro  ·  segure OK 5 s para o modo foco"</string>
@@ -131,4 +131,9 @@
     <string name="iptv_pinned">Fixado: %1$s</string>
     <string name="iptv_unpinned">Desafixado: %1$s</string>
     <string name="title_trailer">Trailer</string>
+    <string name="iptv_restore_chip">Mostrar offline</string>
+    <string name="iptv_restore_title">Canais offline</string>
+    <string name="iptv_restore_all">Restaurar todos os %1$d</string>
+    <string name="iptv_restored">%1$s voltou às listas</string>
+    <string name="iptv_restored_all">%1$s canais voltaram às listas</string>
 </resources>

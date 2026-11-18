@@ -20,7 +20,6 @@
     <string name="dl_play">Play</string>
     <string name="dl_delete_file">Delete the file</string>
     <string name="dl_remove">Remove from the list (keep the file)</string>
-    <string name="dl_dash">This stream type (DASH) can\'t be downloaded yet</string>
     <string name="dl_live">A live stream can\'t be downloaded</string>
     <string name="dl_protected">This stream is protected and can\'t be downloaded</string>
     <string name="dl_merge_failed">The picture and the sound of this stream can\'t be joined</string>
@@ -42,4 +41,12 @@
     <string name="dl_folder_other">Other folder…</string>
     <string name="dl_folder_prompt">Folder (Download/…, Movies/… or Documents/…)</string>
     <string name="dl_folder_bad">The folder must start with Download/, Movies/ or Documents/</string>
+    <string name="dl_make_seekable">Make seekable</string>
+    <string name="dl_ts_hint">A .ts file: a player may not know its length. The button makes it an MP4 you can seek in.</string>
+    <string name="dl_ts_kept">Kept as .ts: %1$s</string>
+    <string name="dl_converting">Making an MP4…</string>
+    <string name="dl_dash_pieces">Download cannot find the pieces of this DASH stream</string>
+    <string name="dl_no_space">There is not enough free space to make an MP4 of it (it needs about %1$s)</string>
+    <string name="dl_dash_periods">This DASH stream comes in several parts (periods), which Download cannot join yet</string>
+    <string name="dl_no_sound">This stream has no sound, so it is not downloaded</string>
 </resources>

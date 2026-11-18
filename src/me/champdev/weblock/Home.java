@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Start screen: Continue watching, then FMHY's streaming sites by category, then the user's own sites. */
+/** Start screen: Continue watching, then the sources' streaming sites by category, then the user's own sites. */
 public class Home extends Activity {
     // One accent, kept for play and progress; everything else is ink, two card tones and two text tones
     static final int BG = 0xFF0E0C13, CARD = 0xFF1A1721, CARD_HI = 0xFF282431, NAV = 0xFF131019, ACCENT = 0xFFFF3B5C, TEXT = 0xFFF4F2F7, MUTED = 0xFF9690A3;
@@ -75,7 +75,11 @@ public class Home extends Activity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        GifView.prefetch();   // the loading backdrop's pictures, fetched once
+        App.io.execute(() -> {   // the loading cats of older versions: their folder goes, so this is one look from then on
+            java.io.File dir = new java.io.File(getFilesDir(), "gif");
+            java.io.File[] old = dir.listFiles();
+            if (old != null) { for (java.io.File f : old) f.delete(); dir.delete(); }
+        });
         android.view.ViewTreeObserver seen = getWindow().getDecorView().getViewTreeObserver();
         seen.addOnScrollChangedListener(this::checkLazy);
         seen.addOnGlobalLayoutListener(this::checkLazy);
@@ -85,7 +89,17 @@ public class Home extends Activity {
         ScrollView sv = page = new ScrollView(this);
         sv.setBackgroundColor(BG);
         sv.setFillViewport(true);
-        col = new LinearLayout(this);
+        col = new LinearLayout(this) {
+            /** RIGHT at the end of a row stays there: the nearest thing further right sits in another row (the remote jumped up to a chip). */
+            @Override public View focusSearch(View focused, int direction) {
+                View next = super.focusSearch(focused, direction);
+                if (direction != View.FOCUS_RIGHT || next == null || focused == null || !inside(next, this)) return next;
+                int[] a = new int[2], b = new int[2];
+                focused.getLocationOnScreen(a);
+                next.getLocationOnScreen(b);
+                return b[1] < a[1] + focused.getHeight() && a[1] < b[1] + next.getHeight() ? next : focused;
+            }
+        };
         col.setOrientation(LinearLayout.VERTICAL);
         // One margin on every side; rows get a little slack past it so the grown focus ring never clips
         side = u(16, 10);
@@ -98,6 +112,7 @@ public class Home extends Activity {
         col.setClipChildren(false);   // grown cards and their rings draw past their rows
         sv.addView(col);
         sv.setOnScrollChangeListener((v, x, y, ox, oy) -> nearEnd());
+        if (App.tv) sv.getViewTreeObserver().addOnGlobalFocusChangeListener((old, now) -> { if (now != null && now != col && inside(now, col)) lastCard = now; });
         if (!App.tv && tabs()) {
             // Pull down at the top of a tab to load it again
             float[] from = {-1};
@@ -119,13 +134,15 @@ public class Home extends Activity {
         setContentView(withNav(sv));
         Warp.listeners.add(warpChanged);
 
-        // Site lists and IPTV channels refresh whenever the app starts and they are older than 12 hours
-        if (Sites.stale() || Iptv.stale()) Warp.whenSettled(() -> App.io.execute(() -> {
-            boolean sites = Sites.stale() && Sites.refresh();
+        // Once per install: an update from a version with built-in sources gets them added (Sources.migrate), then a notice
+        if (!App.prefs.contains("sourcesVersion")) Warp.whenSettled(() -> App.io.execute(() -> { if (Sources.migrate()) runOnUiThread(this::build); }));
+        // The sources (sites, channels, title links) refresh whenever the app starts and they are older than 12 hours
+        if (Sources.stale() || Iptv.stale()) Warp.whenSettled(() -> App.io.execute(() -> {
+            boolean sources = Sources.stale() && Sources.refresh(null);
             boolean iptv = Iptv.stale() && Iptv.refresh();
-            if (sites || iptv) runOnUiThread(this::build);
+            if (sources || iptv) runOnUiThread(this::build);
         }));
-        Warp.whenSettled(() -> App.io.execute(Iptv::refreshLinks));
+        Warp.whenSettled(() -> App.io.execute(Sources::refreshLinks));
         // Test the channels that were not checked lately (a few at a time, in the background)
         Warp.whenSettled(() -> App.io.execute(Iptv::sweep));
         // A newer release on GitHub shows as a line on Home
@@ -144,6 +161,7 @@ public class Home extends Activity {
         build();
         skipFocus = false;
         if (back) restoreFocus(15);
+        else if (savedTab == tab && savedScroll > 0) restoreScroll(savedScroll);   // a phone, or a TV whose remote sat on the rail
     }
 
     // ---- TV: the remote's place is kept. Coming back to a screen puts it on the card it left from, not on the first button ----
@@ -151,6 +169,8 @@ public class Home extends Activity {
     String focusKey;   // the card's own key (a title, channel or site), when it has one
     int[] focusPath;   // where it sat in the page: child numbers from the page down to it
     int savedScroll, savedTab = -1;
+    View lastCard;   // TV: the card in the page the remote was on last (it is on the rail when a tab is pressed)
+    final java.util.Map<Integer, Object[]> places = new java.util.HashMap<>();   // tab > {focusKey, focusPath, scroll}: where each tab was left
 
     @Override protected void onPause() {
         super.onPause();
@@ -158,8 +178,33 @@ public class Home extends Activity {
         View f = getCurrentFocus();
         focusKey = null;
         focusPath = null;
+        savedScroll = page.getScrollY();
+        savedTab = tab;
         if (!App.tv || f == null || !inside(f, col)) return;
         rememberPlace(f);
+    }
+
+    /**
+     * The page is redrawn (back from another screen, or a tab picked again) and scrolls back to where it was. The redrawn page is
+     * measured a moment later and lists arrive later still (a long list's next page loads when the scroll reaches its end), so the
+     * place is put back until it has held for 3 looks in a row, for 2.5 seconds at most; a touch ends it.
+     */
+    void restoreScroll(int y, int at, int tries, int held) {
+        if (at != built + touches || tries <= 0) return;
+        boolean there = page.getScrollY() == y;
+        if (!there) page.scrollTo(0, y);
+        if (!there || held < 3) col.postDelayed(() -> restoreScroll(y, at, tries - 1, there ? held + 1 : 0), 100);
+    }
+
+    void restoreScroll(int y) {
+        restoreScroll(y, built + touches, 25, 0);
+    }
+
+    int touches;   // counts presses on the screen: one ends a restoreScroll in progress
+
+    @Override public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+        if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) touches++;   // the user moves the page: nothing late may move it back
+        return super.dispatchTouchEvent(e);
     }
 
     /** The card the remote is on (its key and its place in the page), with the scroll and the tab, for restoreFocus. */
@@ -212,7 +257,17 @@ public class Home extends Activity {
         if (firstCard == null) firstCard = first;
         if (!focusFirst) return;
         focusFirst = false;
-        if (!inside(getCurrentFocus(), col)) { firstCard.requestFocus(); col.setFocusable(false); }
+        if (!inside(getCurrentFocus(), col)) { firstCard.requestFocus(); autoFocus = firstCard; col.setFocusable(false); }
+    }
+
+    View autoFocus;   // the card focusContent chose: a row that turns up above it takes the focus while the remote has not moved
+
+    /** Whether `a` is higher on the page than `b` (rows arrive in any order; only one above may take the focus). */
+    static boolean above(View a, View b) {
+        int[] pa = new int[2], pb = new int[2];
+        a.getLocationInWindow(pa);
+        b.getLocationInWindow(pb);
+        return pa[1] < pb[1];
     }
 
     static boolean inside(View v, View root) {
@@ -292,18 +347,17 @@ public class Home extends Activity {
         final int t = tab;
         if (t != 3 && t != 5) {   // poster rows show their placeholders while they load: that is the sign
             build();
-            if (t == 0) App.io.execute(Sites::refresh);
+            if (t == 0) App.io.execute(() -> Sources.refresh(Sources.SITES));
             return;
         }
         refreshing = true;
-        android.widget.ProgressBar spin = new android.widget.ProgressBar(this);
-        spin.setIndeterminateTintList(ColorStateList.valueOf(ACCENT));
+        View spin = new Spinner(this);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(28), dp(28));
         lp.gravity = Gravity.CENTER_HORIZONTAL;
         lp.setMargins(0, dp(8), 0, dp(8));
         col.addView(spin, 0, lp);
         App.io.execute(() -> {
-            if (t == 5) Iptv.refresh(); else Sites.refresh();
+            if (t == 5) Iptv.refresh(); else Sources.refresh(Sources.SITES);
             runOnUiThread(() -> { refreshing = false; if (tab == t) build(); });
         });
     }
@@ -353,7 +407,7 @@ public class Home extends Activity {
         cardH = App.tv ? 92 : 62;
         styleTabs();
         switch (tab) {
-            case 0: buildHome(); break;
+            case 0: buildHome(); sourcesNotice(); break;
             case 1: catalogTab("movie", Cats.MOVIES, ""); break;
             case 2: catalogTab("series", Cats.TV, ""); break;
             case 3: sportsTab(); break;
@@ -404,8 +458,7 @@ public class Home extends Activity {
         List<Catalog.Title> mine = Catalog.mine();
         if (!mine.isEmpty()) {
             col.addView(heading(App.t(R.string.home_my_list)));
-            LinearLayout row = row();
-            for (Catalog.Title t : mine) row.addView(posterCard(t, posterW()));
+            posterRow(row(), App.t(R.string.home_my_list), mine);
         }
         otherLanguages();
         String movies = App.t(R.string.home_tab_movies), shows = App.t(R.string.home_tab_tv), anime = App.t(R.string.home_tab_anime);
@@ -425,13 +478,20 @@ public class Home extends Activity {
     void lowerHome(String movies, String shows, String anime) {
         // Each kind: what just came out, then what everyone watches (anime: Kitsu's trending)
         String fresh = App.t(R.string.home_new), popular = App.t(R.string.home_popular);
+        platformRow("movie");
+        brandRow(App.t(R.string.home_studios), "studios", null);
         titleRow(movies, fresh, "movie", "genre=" + Catalog.NEW, 1);
         titleRow(movies, popular, "movie", "", 1);
         titleRow(shows, fresh, "series", "genre=" + Catalog.NEW, 2);
         titleRow(shows, popular, "series", "", 2);
+        String kids = App.t(R.string.home_kids);   // the brands children know, then family titles (More opens the tab on its Family chip)
+        brandRow(kids, null, KIDS);
+        titleRow(kids, movies, "movie", "genre=Family", 1);
+        titleRow(kids, shows, "series", "genre=Family", 2);
         titleRow(anime, fresh, "series", Catalog.NEW_ANIME, 4);
         titleRow(anime, popular, "series", Catalog.TRENDING_ANIME, 4);
 
+        sourcesNote(Sources.SITES);
         List<Sites.Site> more = Sites.load().get(Cats.MORE);
         if (more != null) {
             col.addView(heading(App.t(R.string.home_more)));
@@ -595,6 +655,7 @@ public class Home extends Activity {
         FrameLayout box = heroBox;
         ImageView old = heroImg, next = new ImageView(this);
         next.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        next.setCropToPadding(true);   // the box lets its children draw past it (the play button's ring): the cropped picture must not, or it covers the row below
         if (heroPending != null) box.removeView(heroPending);   // a picture that never came: it is not waited for any more
         if (old != null) next.setAlpha(0f);
         heroPending = next;
@@ -760,11 +821,11 @@ public class Home extends Activity {
 
     static final int RAIL = 72;   // dp
 
-    /** The app's name, written like the project banner: FMHY in white, Play in the accent red. */
+    /** The app's name, written like the project banner: Anant in white, Play in the accent red. */
     TextView brand(float size) {
         TextView name = text("", size, TEXT, true);
-        android.text.SpannableString s = new android.text.SpannableString("FMHYPlay");
-        s.setSpan(new android.text.style.ForegroundColorSpan(ACCENT), 4, 8, 0);
+        android.text.SpannableString s = new android.text.SpannableString("AnantPlay");
+        s.setSpan(new android.text.style.ForegroundColorSpan(ACCENT), 5, 9, 0);
         name.setText(s);
         name.setSingleLine();
         return name;
@@ -861,7 +922,19 @@ public class Home extends Activity {
             goHome(this);
             return;
         }
-        if (n == tab) return;
+        if (n == tab) {   // the tab that is showing, pressed again: back to its top
+            page.smoothScrollTo(0, 0);
+            if (App.tv && firstCard != null) firstCard.requestFocus();
+            return;
+        }
+        // Where this tab is left: coming back to it later returns there, not to its top
+        focusKey = null;
+        focusPath = null;
+        if (App.tv && lastCard != null && inside(lastCard, col)) rememberPlace(lastCard);
+        places.put(tab, new Object[]{focusKey, focusPath, page.getScrollY()});
+        focusKey = null;
+        focusPath = null;
+        lastCard = null;
         tab = n;
         // The pressed tab lights up and the old page goes at once; the new page is drawn on the next frame
         styleTabs();
@@ -876,7 +949,14 @@ public class Home extends Activity {
             if (tab != n) return;
             col.setAlpha(0f);   // the new page fades in and rises a little
             col.setTranslationY(dp(14));
-            build();   // on a TV the remote lands on the tab's first card (build does it), not left behind on the rail
+            Object[] place = places.remove(n);
+            boolean card = place != null && App.tv && (place[0] != null || place[1] != null);
+            if (card) { focusKey = (String) place[0]; focusPath = (int[]) place[1]; savedScroll = (Integer) place[2]; }
+            skipFocus = card;
+            build();   // on a TV the remote lands on the tab's first card (build does it), or on the card it left this tab from
+            skipFocus = false;
+            if (card) restoreFocus(15);
+            else if (place != null && (Integer) place[2] > 0) restoreScroll((Integer) place[2]);
             col.animate().alpha(1f).translationY(0).setDuration(220).start();
         });
     }
@@ -887,7 +967,10 @@ public class Home extends Activity {
     }
 
     /** Poster width in dp for a row of posters. */
-    int posterW() { return App.tv ? 122 : 108; }
+    int posterW() { return App.tv ? 150 : 124; }
+
+    /** Posters across the screen in a grid of titles. */
+    int posterCols() { return App.tv ? 6 : 3; }
 
     View note(String s) {
         TextView t = text(s, sp(15, 13), MUTED, false);
@@ -902,9 +985,7 @@ public class Home extends Activity {
         tile.setGravity(Gravity.CENTER);
         tile.setBackground(rounded(CARD, dp(10)));
         tile.setLayoutParams(cardParams(grid.cell, grid.cell * 3 / 2));
-        android.widget.ProgressBar spin = new android.widget.ProgressBar(this);
-        spin.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(ACCENT));
-        tile.addView(spin, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        tile.addView(new Spinner(this), new LinearLayout.LayoutParams(dp(36), dp(36)));
         TextView label = text(App.t(R.string.home_loading), sp(14, 12), MUTED, false);
         label.setPadding(0, dp(10), 0, 0);
         label.setGravity(Gravity.CENTER);
@@ -917,7 +998,7 @@ public class Home extends Activity {
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setBackgroundColor(BG);
-        bar.setPadding(dp(10), 0, dp(4), 0);   // the status bar above already leaves room
+        bar.setPadding(dp(10), 0, dp(4), dp(8));   // the status bar above already leaves room; below, a gap before the page starts
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.drawable.ic_logo);
         LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(dp(28), dp(28));
@@ -956,7 +1037,7 @@ public class Home extends Activity {
         col.addView(h);
         LinearLayout row = row();
         final int id = built;
-        boolean local = extra.startsWith("local=");   // a bonus row: gone when its source is down, no error line
+        boolean local = extra.startsWith("local=") || extra.startsWith("rank=");   // a bonus row: gone when its source is down, no error line
         List<Catalog.Title> hit = Catalog.cached(type, extra);
         if (hit != null && !(local && hit.isEmpty())) { fillPosters(row, hit, extra, moreTab); return; }
         skeleton(row, posterW());
@@ -975,6 +1056,59 @@ public class Home extends Activity {
         });
     }
 
+    /** The streaming services of the viewer's country as tiles: each opens what is popular on it (movies or series first, by `kind`) and its brands. */
+    void platformRow(String kind) {
+        col.addView(heading(App.t(R.string.home_platforms)));
+        LinearLayout row = row();
+        for (String[] s : Catalog.services(App.region()))
+            row.addView(platformTile(s[1], s[2], v -> startActivity(new Intent(this, PlatformActivity.class).putExtra("platform", s[0]).putExtra("kind", kind))));
+    }
+
+    /** The Kids tiles: {list, brand} in the brand file. */
+    static final String[][] KIDS = {{"dnp", "disney"}, {"dnp", "pixar"}, {"studios", "dreamworks"}, {"studios", "illumination"}, {"kids", "nickelodeon"}, {"kids", "cartoonnetwork"}};
+
+    /**
+     * A heading and a row of brand tiles: every brand of one of the brand file's lists, or the picked ones. The file arrives a moment
+     * later (kept for 6 hours), so the row keeps its room; without any brand the heading and the row go.
+     */
+    void brandRow(String name, String list, String[][] only) {
+        View h = heading(name);
+        col.addView(h);
+        LinearLayout row = row();
+        row.setMinimumHeight(dp(App.tv ? 64 : 54));
+        final int id = built;
+        App.io.execute(() -> {
+            List<String[]> tiles = new ArrayList<>();   // {list, brand, name, color}
+            if (only == null) for (Catalog.Brand b : Catalog.brands(list)) tiles.add(new String[]{list, b.id, b.name, b.color});
+            else for (String[] o : only) for (Catalog.Brand b : Catalog.brands(o[0])) if (b.id.equals(o[1])) tiles.add(new String[]{o[0], b.id, b.name, b.color});
+            runOnUiThread(() -> {
+                if (id != built) return;
+                if (tiles.isEmpty()) { col.removeView(h); col.removeView((View) row.getParent()); return; }
+                for (String[] t : tiles)
+                    row.addView(platformTile(t[2], t[3], v -> startActivity(new Intent(this, PlatformActivity.class).putExtra("platform", t[0]).putExtra("brand", t[1]))));
+            });
+        });
+    }
+
+    /** A service or brand: its name in its own color (no logos: they are trademarks). */
+    View platformTile(String name, String color, View.OnClickListener click) {
+        int c = TEXT;
+        try { c = Color.parseColor(color); } catch (RuntimeException ignored) { }
+        TextView t = text(name, sp(17, 15), c, true);
+        t.setGravity(Gravity.CENTER);
+        t.setMaxLines(1);   // not setSingleLine(): it scrolls the text inside the view, and the focus ring is drawn scrolled away with it
+        LinearLayout.LayoutParams lp = cardParams(App.tv ? 160 : 124, App.tv ? 64 : 54);
+        lp.width = -2;   // as wide as its name ("National Geographic"), never narrower than the others
+        t.setMinWidth(dp(App.tv ? 160 : 124));
+        t.setPadding(dp(18), 0, dp(18), 0);
+        t.setLayoutParams(lp);
+        t.setBackground(rounded(CARD, dp(14)));
+        t.setTag("platform:" + name);
+        focusable(t, dp(14));
+        t.setOnClickListener(click);
+        return t;
+    }
+
     /** Quiet blocks where a row's posters will be, so the page does not jump when they arrive. */
     void skeleton(LinearLayout row, int w) {
         for (int i = 0; i < 8; i++) {
@@ -989,26 +1123,45 @@ public class Home extends Activity {
 
     /** `extra` "genre=X": More opens the tab on that genre chip. moreTab -1: no More (the row is on that tab already). */
     void fillPosters(LinearLayout row, List<Catalog.Title> list, String extra, int moreTab) {
+        if (extra.startsWith("rank=")) {   // a language's New or Popular: 15 and a More that opens all of it as a grid
+            String[] r = extra.substring(5).split(":", 2);
+            posterRow(row, App.t(r[0].equals("new") ? R.string.home_new : R.string.home_popular) + "  " + r[1], list);
+            View top = row.getChildAt(0);
+            if (App.tv && top != null && autoFocus != null && getCurrentFocus() == autoFocus && above(top, autoFocus)) { top.requestFocus(); autoFocus = top; }
+            return;
+        }
         for (Catalog.Title t : list.subList(0, Math.min(14, list.size()))) row.addView(posterCard(t, posterW()));
         if (moreTab < 0) return;
+        row.addView(moreCard(v -> {
+            if (extra.isEmpty() || extra.startsWith("genre=")) genres.put(moreTab, extra.replaceFirst("^genre=", ""));
+            else if (extra.startsWith("local=")) genres.put(moreTab, Catalog.LANG + Catalog.languages(extra.substring(6))[0]);
+            selectTab(moreTab);
+        }));
+    }
+
+    /** The card a row of posters ends in when there is more than it shows. */
+    View moreCard(View.OnClickListener click) {
         TextView more = text(App.t(R.string.home_more_arrow), sp(17, 15), TEXT, true);
         more.setGravity(Gravity.CENTER);
         more.setLayoutParams(cardParams(posterW(), posterW() * 3 / 2));
         more.setBackground(rounded(CARD, dp(10)));
         focusable(more, dp(10));
-        more.setOnClickListener(v -> {
-            if (extra.isEmpty() || extra.startsWith("genre=")) genres.put(moreTab, extra.replaceFirst("^genre=", ""));
-            else if (extra.startsWith("local=")) genres.put(moreTab, Catalog.LANG + Catalog.languages(extra.substring(6))[0]);
-            selectTab(moreTab);
-        });
-        row.addView(more);
+        more.setOnClickListener(click);
+        return more;
+    }
+
+    /** A sideways row of titles shows 15; a longer list ends in a More card that opens all of it as a grid, in the same order. */
+    void posterRow(LinearLayout row, String name, List<Catalog.Title> list) {
+        for (Catalog.Title t : list.subList(0, Math.min(15, list.size()))) row.addView(posterCard(t, posterW()));
+        if (list.size() > 15) row.addView(moreCard(v -> ListActivity.open(this, name, list)));
     }
 
     /** Movies, TV and Anime: the sites that carry them, then the native catalog (genre chips, posters, load more). */
     void catalogTab(String type, String category, String fixedGenre) {
         List<Sites.Site> sites = Sites.load().get(category);
+        sourcesNote(Sources.SITES);
         if (sites != null) {
-            // One slim line of sites (icon, name and FMHY's tags: 4K, Dual Audio...), so the posters start high on the screen
+            // One slim line of sites (icon, name and its tags: 4K, Dual Audio...), so the posters start high on the screen
             cardW = App.tv ? 210 : 150;
             cardH = App.tv ? 62 : 54;
             siteRow(category, sites);
@@ -1018,13 +1171,22 @@ public class Home extends Activity {
         firstCard = null;   // the remote opens on the first poster, not on a site or a language chip (focusContent)
         if (category.equals(Cats.ANIME)) titleRow(App.t(R.string.home_new_anime), "", "series", Catalog.NEW_ANIME, -1);
         String genre = fixedGenre.isEmpty() ? genres.getOrDefault(tab, firstList()) : fixedGenre;
+        if (fixedGenre.isEmpty()) platformRow(type);
         // The chips say which list this is; only the Anime tab has one fixed list, under its own heading
         col.addView(fixedGenre.isEmpty() ? genreChips() : heading(App.t(R.string.home_popular_animation)));
+        if (genre.startsWith(Catalog.LANG)) languageRows(type, genre.substring(Catalog.LANG.length()));
         LinearLayout holder = new LinearLayout(this);
         holder.setOrientation(LinearLayout.VERTICAL);
         col.addView(holder);
-        loadPage(type, genre, 0, holder, new Grid(holder, App.tv ? 8 : 3), built);
+        loadPage(type, genre, 0, holder, new Grid(holder, posterCols()), built);
         focusFirst = App.tv && firstCard == null && !skipFocus;   // the list is not here yet: showPage hands the remote over
+    }
+
+    /** Under a language's chip: its New and Popular rows (left out while the scraper's file is not there), then All, the full list below. */
+    void languageRows(String type, String language) {
+        titleRow(App.t(R.string.home_new), language, type, "rank=new:" + language, -1);
+        titleRow(App.t(R.string.home_popular), language, type, "rank=popular:" + language, -1);
+        col.addView(heading(App.t(R.string.home_all), language));
     }
 
     /** What Movies and TV open on: the viewer's own first language when their country has lists, else New. */
@@ -1103,7 +1265,7 @@ public class Home extends Activity {
         holder.setTag(seen);
         for (Catalog.Title t : list) if (seen.add(t.id)) { grid.add(posterCard(t, grid.cell)); stepCards++; }
         if (firstCard != null) focusContent(firstCard);
-        if (list.isEmpty() || (!anime && list.size() < 20) || genre.equals(Catalog.NEW)) return;   // New is one list
+        if (list.isEmpty() || (!anime && list.size() < 20) || genre.equals(Catalog.NEW) || genre.startsWith(Catalog.PLATFORM)) return;   // New and a platform are one list
         // No "Load more" button: pressing it removed the card the remote was on, so the focus went back to the tabs
         Runnable next = () -> loadPage(type, genre, skip + (anime ? 20 : list.size()), holder, grid, id);
         if (stepCards < STEP_CARDS) { next.run(); return; }   // a source with pages of 20: several at once, the grid is compact
@@ -1115,6 +1277,7 @@ public class Home extends Activity {
     int stepCards;                      // added in this step so far
 
     void sportsTab() {
+        sourcesNote(Sources.SITES);
         for (String cat : new String[]{Cats.SPORTS, Cats.LIVE}) {
             List<Sites.Site> sites = Sites.load().get(cat);
             if (sites == null) continue;
@@ -1122,6 +1285,20 @@ public class Home extends Activity {
             Grid grid = new Grid(col);
             for (Sites.Site s : sites) grid.add(s);
         }
+    }
+
+    /** The channels hidden as offline: Restore all, or one of them. A restored channel is never hidden again. */
+    void restoreChannels(List<Iptv.Channel> hidden) {
+        String[] names = new String[hidden.size() + 1];
+        names[0] = App.t(R.string.iptv_restore_all, hidden.size());
+        for (int i = 0; i < hidden.size(); i++) names[i + 1] = hidden.get(i).name;
+        new AlertDialog.Builder(this).setTitle(App.t(R.string.iptv_restore_title)).setItems(names, (d, i) -> {
+            List<String> urls = new ArrayList<>();
+            if (i == 0) for (Iptv.Channel c : hidden) urls.add(c.url); else urls.add(hidden.get(i - 1).url);
+            Iptv.restore(urls);
+            toast(App.t(i == 0 ? R.string.iptv_restored_all : R.string.iptv_restored, i == 0 ? String.valueOf(urls.size()) : hidden.get(i - 1).name));
+            rebuild();
+        }).show();
     }
 
     /**
@@ -1136,11 +1313,19 @@ public class Home extends Activity {
         if (status.isEmpty() && App.tv && !Iptv.history().isEmpty()) status = App.t(R.string.home_hint_hold_channel);
         TextView note = text(status, sp(13, 12), MUTED, false);
         h.addView(note, new LinearLayout.LayoutParams(0, -2, 1));
+        List<Iptv.Channel> hidden = all.isEmpty() || Iptv.sweeping ? new ArrayList<>() : Iptv.hidden();
+        if (!hidden.isEmpty()) {   // the offline ones can be brought back, one by one or all
+            TextView show = chip(v -> restoreChannels(hidden));
+            show.setText(App.t(R.string.iptv_restore_chip));
+            show.setBackground(rounded(CARD, dp(22)));
+            h.addView(show);
+        }
         TextView add = chip(v -> addPlaylistDialog());   // channels are in Search, with movies and sites
         add.setText(App.t(R.string.home_add_playlist_chip));
         add.setBackground(rounded(CARD, dp(22)));
         h.addView(add);
         col.addView(h);
+        if (all.isEmpty() && Iptv.mine().isEmpty()) sourcesNote(Sources.PLAYLIST);
         if (all.isEmpty()) {
             if (!Iptv.loading) Warp.whenSettled(() -> App.io.execute(() -> {
                 boolean ok = Iptv.refresh();
@@ -1148,7 +1333,7 @@ public class Home extends Activity {
             }));
             return;
         }
-        int cols = App.tv ? 8 : 3;
+        int cols = App.tv ? 6 : 3;
         channelRow(App.t(R.string.home_continue_watching), Iptv.history(), cols, "history", 99, null);
         channelRow(App.t(R.string.home_favorites), Iptv.favorites(), cols, "fav", 14, v -> openIptv("fav", "", App.t(R.string.home_favorites), false));
         // What you added yourself: a row per playlist under the name you gave it, single stream links together
@@ -1385,30 +1570,6 @@ public class Home extends Activity {
         }
     }
 
-    /** Set (or clear) the link to your own extra source list, then fetch it. */
-    void extrasDialog() {
-        EditText in = WebActivity.field(this, "https://example.com/sources.txt", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        in.setText(Iptv.extrasUrl());
-        new AlertDialog.Builder(this).setTitle(App.t(R.string.home_extras_title)).setMessage(App.t(R.string.home_extras_msg)).setView(WebActivity.box(this, in))
-            .setPositiveButton(App.t(R.string.home_save), (d, w) -> {
-                App.prefs.edit().putString("extrasUrl", in.getText().toString().trim()).apply();
-                toast(App.t(R.string.home_fetching));
-                Warp.whenSettled(() -> App.io.execute(() -> {
-                    boolean ok = Iptv.refresh();
-                    runOnUiThread(() -> { toast(App.t(ok ? R.string.home_source_updated : R.string.home_list_offline)); build(); });
-                }));
-            })
-            .setNeutralButton(App.t(R.string.home_default), (d, w) -> {
-                App.prefs.edit().remove("extrasUrl").apply();
-                Warp.whenSettled(() -> App.io.execute(() -> {
-                    Iptv.refresh();
-                    runOnUiThread(this::build);
-                }));
-            })
-            .setNegativeButton(android.R.string.cancel, null)
-            .show();
-    }
-
     /** Ask for an M3U link and a name, download it, and give its channels their own row on the IPTV tab. */
     void addPlaylistDialog() {
         EditText in = WebActivity.field(this, "https://example.com/playlist.m3u", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
@@ -1551,6 +1712,13 @@ public class Home extends Activity {
     }
 
     void settingsTab() {
+        single(R.drawable.ic_folder);   // first: where the sites and channels come from
+        TextView sourcesValue = new TextView(this);
+        secBox.addView(settingRow(R.drawable.ic_folder, App.t(R.string.sources_title), App.t(R.string.sources_settings_help), sourcesValue, v -> openSources()));
+        int nSources = 0;
+        for (Sources.Source src : Sources.added()) if (!src.adult || App.prefs.getBoolean("adult", false)) nSources++;   // 18+ ones only count once they show
+        sourcesValue.setText(nSources == 0 ? App.t(R.string.home_none) : App.t(R.string.sources_count, nSources));
+        sourcesValue.setTextColor(nSources == 0 ? ACCENT : GREEN);
         single(R.drawable.ic_home);
         TextView regionValue = new TextView(this);
         secBox.addView(settingRow(R.drawable.ic_home, App.t(R.string.home_region), App.t(R.string.home_region_help), regionValue, v -> regionDialog()));
@@ -1631,6 +1799,9 @@ public class Home extends Activity {
         int seen = History.list().size();
         secBox.addView(settingRow(R.drawable.ic_p_replay, App.t(R.string.home_clear_history), App.t(seen == 1 ? R.string.home_history_count_one : R.string.home_history_count_many, seen), null, v ->
             confirm(App.t(R.string.home_clear_history_title), App.t(R.string.home_clear_history_msg), App.t(R.string.home_clear), () -> { History.save(new ArrayList<>()); rebuild(); toast(App.t(R.string.home_history_cleared)); })));
+        int searched = SearchActivity.recent().size();
+        secBox.addView(settingRow(R.drawable.ic_search, App.t(R.string.home_clear_searches), App.t(R.string.home_searches_count, searched), null, v ->
+            confirm(App.t(R.string.home_clear_searches) + "?", App.t(R.string.home_clear_searches_msg), App.t(R.string.home_clear), () -> { App.prefs.edit().remove("searches").apply(); rebuild(); toast(App.t(R.string.home_searches_cleared)); })));
         int watched = Iptv.history().size();
         secBox.addView(settingRow(R.drawable.ic_live, App.t(R.string.home_clear_iptv_history), App.t(watched == 1 ? R.string.home_iptv_history_count_one : R.string.home_iptv_history_count_many, watched), null, v ->
             confirm(App.t(R.string.home_clear_iptv_history_title), App.t(R.string.home_clear_iptv_history_msg), App.t(R.string.home_clear), () -> { App.prefs.edit().remove("iptvhist").apply(); rebuild(); toast(App.t(R.string.home_iptv_history_cleared)); })));
@@ -1650,10 +1821,6 @@ public class Home extends Activity {
             adultValue.setText(App.t(Iptv.adultOn() ? R.string.home_on : R.string.home_off));
             adultValue.setTextColor(Iptv.adultOn() ? GREEN : MUTED);
         }
-        TextView extrasValue = new TextView(this);
-        secBox.addView(settingRow(R.drawable.ic_p_episodes, App.t(R.string.home_extras_title), App.t(R.string.home_extras_help), extrasValue, v -> extrasDialog()));
-        extrasValue.setText(App.t(Iptv.extrasUrl().isEmpty() ? R.string.home_none : Iptv.extrasUrl().equals(Iptv.DEFAULT_EXTRAS) ? R.string.home_default : R.string.home_custom));
-        extrasValue.setTextColor(Iptv.extrasUrl().isEmpty() ? MUTED : GREEN);
         secBox.addView(settingRow(R.drawable.ic_add, App.t(R.string.home_add_playlist_title), App.t(R.string.home_add_playlist_help), null, v -> addPlaylistDialog()));
         for (String url : Iptv.mine()) {
             int n = Iptv.parse(Iptv.read(Iptv.mineFile(url)), false).size();
@@ -1688,6 +1855,24 @@ public class Home extends Activity {
             Subs.panel(this, false, () -> subValue.setText(Subs.sizeLabel() + " \u00B7 " + Subs.offsetLabel()), this::rebuild)));
         subValue.setText(Subs.sizeLabel() + " \u00B7 " + Subs.offsetLabel());
         subValue.setTextColor(Subs.size() == 100 && Subs.offset() == 0 && Subs.background() == 50 && Subs.colorIndex() == 0 ? MUTED : GREEN);
+        TextView qualityValue = new TextView(this);
+        int cap = App.prefs.getInt("maxQuality", 0);
+        secBox.addView(settingRow(R.drawable.ic_p_quality, App.t(R.string.home_max_quality), App.t(R.string.home_max_quality_help), qualityValue, v -> qualityDialog()));
+        qualityValue.setText(cap == 0 ? App.t(R.string.home_auto_value, PlayerActivity.heightLabel(PlayerActivity.autoMaxHeight(this))) : PlayerActivity.heightLabel(cap));
+        qualityValue.setTextColor(cap == 0 ? MUTED : GREEN);
+        TextView audioValue = new TextView(this);
+        secBox.addView(settingRow(R.drawable.ic_p_audio, App.t(R.string.home_audio_language), App.t(R.string.home_audio_language_help), audioValue, v -> audioLanguageDialog()));
+        audioValue.setText(audioLanguageName(App.prefs.getString("audioLang", "")));
+        audioValue.setTextColor(App.prefs.getString("audioLang", "").isEmpty() ? MUTED : GREEN);
+        if (!App.tv) {   // a TV has no touch
+            TextView swipeValue = new TextView(this);
+            secBox.addView(settingRow(R.drawable.ic_p_sun, App.t(R.string.home_swipe_controls), App.t(R.string.home_swipe_controls_help), swipeValue, v -> {
+                App.prefs.edit().putBoolean("swipeControls", !PlayerActivity.swipeOn()).apply();
+                rebuild();
+            }));
+            swipeValue.setText(App.t(PlayerActivity.swipeOn() ? R.string.home_on : R.string.home_off));
+            swipeValue.setTextColor(PlayerActivity.swipeOn() ? GREEN : MUTED);
+        }
         TextView boostValue = new TextView(this);
         secBox.addView(settingRow(R.drawable.ic_p_volume, App.t(R.string.home_volume_boost), App.t(R.string.home_volume_boost_help), boostValue, v -> audioPanel()));
         boostValue.setText(PlayerActivity.boostLabel(PlayerActivity.boostDb()));
@@ -1762,11 +1947,11 @@ public class Home extends Activity {
         int own = Sites.custom().size();
         ownValue.setText(own == 0 ? App.t(R.string.home_none) : App.t(own == 1 ? R.string.home_sites_one : R.string.home_sites_many, own));
         ownValue.setTextColor(own == 0 ? MUTED : GREEN);
-        secBox.addView(settingRow(R.drawable.ic_refresh, App.t(R.string.home_refresh_fmhy), App.t(R.string.home_refresh_fmhy_help), null, v -> {
-            toast(App.t(R.string.home_checking_fmhy));
+        secBox.addView(settingRow(R.drawable.ic_refresh, App.t(R.string.sources_refresh), App.t(R.string.sources_refresh_help), null, v -> {
+            toast(App.t(R.string.sources_checking));
             App.io.execute(() -> {
-                boolean changed = Sites.refresh();
-                runOnUiThread(() -> toast(App.t(changed ? R.string.home_site_list_updated : R.string.home_site_list_current)));
+                boolean changed = Sources.refresh(null);
+                runOnUiThread(() -> { toast(App.t(changed ? R.string.sources_updated : R.string.sources_current)); if (changed) build(); });
             });
         }));
 
@@ -1774,9 +1959,9 @@ public class Home extends Activity {
         String ver = "";
         try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
         section(App.t(R.string.home_about), R.drawable.ic_info, true);
-        secBox.addView(settingRow(R.drawable.ic_language, App.t(R.string.home_about_site), "fmhyplay.github.io/android", null, v -> openLink("https://fmhyplay.github.io/android/")));
-        secBox.addView(settingRow(R.drawable.ic_code, App.t(R.string.home_about_source), "github.com/fmhyplay/android", null, v -> openLink("https://github.com/fmhyplay/android")));
-        secBox.addView(settingRow(R.drawable.ic_info, App.t(R.string.home_about_bug), "github.com/fmhyplay/android/issues", null, v -> openLink("https://github.com/fmhyplay/android/issues")));
+        secBox.addView(settingRow(R.drawable.ic_language, App.t(R.string.home_about_site), "anantplay.github.io/android", null, v -> openLink("https://anantplay.github.io/android/")));
+        secBox.addView(settingRow(R.drawable.ic_code, App.t(R.string.home_about_source), "github.com/AnantPlay/android", null, v -> openLink("https://github.com/AnantPlay/android")));
+        secBox.addView(settingRow(R.drawable.ic_info, App.t(R.string.home_about_bug), "github.com/AnantPlay/android/issues", null, v -> openLink("https://github.com/AnantPlay/android/issues")));
         TextView about = text(App.t(App.tv ? R.string.home_about_tv : R.string.home_about_phone, ver), sp(12, 11), MUTED, false);
         about.setPadding(u(52, 50), dp(6), dp(14), dp(12));
         about.setVisibility(secOpen ? View.VISIBLE : View.GONE);
@@ -1817,6 +2002,38 @@ public class Home extends Activity {
         for (String c : codes) names.add(c.isEmpty() ? App.t(R.string.warp_dns_auto) : c.equals("-") ? App.t(R.string.home_off) : new java.util.Locale("", c).getDisplayCountry());
         new AlertDialog.Builder(this).setTitle(App.t(R.string.home_region)).setItems(names.toArray(new String[0]), (d, i) -> {
             App.prefs.edit().putString("region", codes.get(i)).apply();
+            rebuild();
+        }).show();
+    }
+
+    void qualityDialog() {
+        int[] caps = PlayerActivity.QUALITY_CAPS;
+        String[] names = new String[caps.length];
+        for (int i = 0; i < caps.length; i++) names[i] = caps[i] == 0 ? App.t(R.string.home_auto_value, PlayerActivity.heightLabel(PlayerActivity.autoMaxHeight(this))) : PlayerActivity.heightLabel(caps[i]);
+        new AlertDialog.Builder(this).setTitle(App.t(R.string.home_max_quality)).setItems(names, (d, i) -> {
+            App.prefs.edit().putInt("maxQuality", caps[i]).apply();
+            rebuild();
+        }).show();
+    }
+
+    // The languages dubs most often come in; the rest still work through the player's Audio button, which remembers its pick too
+    static final String[] AUDIO_LANGS = {"en", "hi", "ta", "te", "ml", "kn", "bn", "mr", "es", "pt", "fr", "de", "it", "ru", "tr", "ar", "id", "ja", "ko", "zh"};
+
+    static String audioLanguageName(String code) {
+        return code.isEmpty() ? App.t(R.string.home_auto_value, new java.util.Locale(java.util.Locale.getDefault().getLanguage()).getDisplayLanguage())
+            : code.equals(PlayerActivity.ORIGINAL) ? App.t(R.string.home_audio_original) : new java.util.Locale(code).getDisplayLanguage();
+    }
+
+    /** The audio language every video starts in when it has it (the same choice the player's Audio button remembers). */
+    void audioLanguageDialog() {
+        List<String> codes = new ArrayList<>(java.util.Arrays.asList("", PlayerActivity.ORIGINAL));
+        codes.addAll(java.util.Arrays.asList(AUDIO_LANGS));
+        String now = App.prefs.getString("audioLang", "");
+        if (!codes.contains(now)) codes.add(2, now);   // a language picked in the player that is not in the list
+        String[] names = new String[codes.size()];
+        for (int i = 0; i < names.length; i++) names[i] = audioLanguageName(codes.get(i)) + (codes.get(i).equals(now) ? "  \u2713" : "");
+        new AlertDialog.Builder(this).setTitle(App.t(R.string.home_audio_language)).setItems(names, (d, i) -> {
+            App.prefs.edit().putString("audioLang", codes.get(i)).apply();
             rebuild();
         }).show();
     }
@@ -2352,7 +2569,9 @@ public class Home extends Activity {
         if (cardH < 70) { tags.setTextSize(sp(11, 10)); tags.setPadding(0, u(2, 1), 0, 0); }   // the slim card: smaller, close under the name
         if (cardH >= 52) card.addView(tags);
 
-        card.setBackground(rounded(CARD, dp(14)));
+        GradientDrawable fill = rounded(picked(s) ? CARD_HI : CARD, dp(14));
+        if (picked(s)) fill.setStroke(dp(2), ACCENT);   // the site Watch will use
+        card.setBackground(fill);
         focusable(card, dp(14));
         card.setTag("s" + s.url);
         card.setOnClickListener(v -> openSite(s));
@@ -2378,6 +2597,9 @@ public class Home extends Activity {
     void openSite(Sites.Site s) {
         startActivity(WebActivity.open(this, s.name, s.url, s.url));
     }
+
+    /** True for the site card that is the title page's current pick (it gets an outline). */
+    boolean picked(Sites.Site s) { return false; }
 
     View languageCard(String language, int count) {
         LinearLayout card = new LinearLayout(this);
@@ -2416,6 +2638,36 @@ public class Home extends Activity {
         focusable(card, dp(14));
         card.setOnClickListener(v -> addSiteDialog());
         return card;
+    }
+
+    void openSources() {
+        startActivity(new android.content.Intent(this, SourcesActivity.class));
+    }
+
+    /** Where sites or channels would be while no source of that kind is added: a line and a button to Settings, Sources. */
+    void sourcesNote(String type) {
+        if (!Sources.added(type).isEmpty()) return;
+        LinearLayout h = new LinearLayout(this);
+        h.setGravity(Gravity.CENTER_VERTICAL);
+        h.setPadding(0, dp(4), 0, dp(10));
+        h.addView(text(App.t(R.string.sources_none), sp(13, 12), MUTED, false), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView add = chip(v -> openSources());
+        add.setText(App.t(R.string.sources_add_chip));
+        add.setTextColor(0xFFFFFFFF);
+        add.setBackground(rounded(ACCENT, dp(22)));
+        focusable(add, dp(22));
+        h.addView(add);
+        col.addView(h);
+    }
+
+    /** Once, after an update from AnantPlay: the new name, and where the sites and channels went. */
+    void sourcesNotice() {
+        if (!App.prefs.getBoolean("sourcesNotice", false)) return;
+        App.prefs.edit().putBoolean("sourcesNotice", false).apply();
+        new AlertDialog.Builder(this).setTitle(App.t(R.string.sources_notice_title)).setMessage(App.t(R.string.sources_notice_msg))
+            .setPositiveButton(android.R.string.ok, null)
+            .setNeutralButton(App.t(R.string.sources_notice_open), (d, w) -> openSources())
+            .show();
     }
 
     void addSiteDialog() {
@@ -2497,6 +2749,27 @@ public class Home extends Activity {
         else if (r.bottom + dp(48) > y + h) page.smoothScrollTo(0, r.bottom + dp(48) - h);
     }
 
+    /** A turning arc, drawn frame by frame from the clock. The stock ProgressBar stands still where the system's animations are off (Mi TV), which looks like a hang. */
+    static class Spinner extends View {
+        final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+        Spinner(Context c) {
+            super(c);
+            paint.setStyle(android.graphics.Paint.Style.STROKE);
+            paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+            paint.setColor(ACCENT);
+        }
+
+        @Override protected void onDraw(android.graphics.Canvas cv) {
+            float side = Math.min(getWidth(), getHeight()), w = side / 9;
+            float x = (getWidth() - side) / 2 + w, y = (getHeight() - side) / 2 + w;
+            paint.setStrokeWidth(w);
+            cv.rotate(android.os.SystemClock.uptimeMillis() % 900 * 0.4f, getWidth() / 2f, getHeight() / 2f);   // a turn in 0.9 s
+            cv.drawArc(x, y, x + side - 2 * w, y + side - 2 * w, 0, 270, false, paint);
+            postInvalidateOnAnimation();   // only while it is drawn: hidden, it stops
+        }
+    }
+
     static GradientDrawable rounded(int color, int radius) {
         GradientDrawable g = new GradientDrawable();
         g.setColor(color);
@@ -2563,7 +2836,9 @@ public class Home extends Activity {
     void startLoad(ImageView into, String url, View placeholder, int min, String key) {
         java.util.function.Consumer<Bitmap> done = b -> {
             if (b == null || !key.equals(into.getTag())) return;   // failed, or the view shows something else by now
+            boolean had = into.getDrawable() != null;   // another size already shows: swapped in place, no fade from nothing
             show(into, b, placeholder);
+            if (had) return;
             into.setAlpha(0f);
             into.animate().alpha(1).setDuration(180).start();
         };
@@ -2579,6 +2854,12 @@ public class Home extends Activity {
             synchronized (loading) { waiting = loading.remove(key); }
             for (java.util.function.Consumer<Bitmap> c : waiting) App.main.post(() -> c.accept(b));
         });
+    }
+
+    /** The same picture at any size already in memory (a card shows a poster smaller than a title page does); null when none is. */
+    static Bitmap anySize(String url) {
+        for (Map.Entry<String, Bitmap> e : images.snapshot().entrySet()) if (e.getKey().startsWith(url + "@")) return e.getValue();
+        return null;
     }
 
     void show(ImageView into, Bitmap b, View placeholder) {

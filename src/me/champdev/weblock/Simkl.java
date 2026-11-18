@@ -140,9 +140,9 @@ final class Simkl {
     /** Every call names the app (client_id, app-name, app-version and a User-Agent), as Simkl asks. Returns the reply, also on errors. */
     private static String call(String method, String path, String body, boolean json, int[] status, String token) throws IOException {
         String version = Update.installed();
-        HttpURLConnection c = Warp.open(API + path + "?client_id=" + CLIENT_ID + "&app-name=fmhyplay&app-version=" + version);
+        HttpURLConnection c = Warp.open(API + path + "?client_id=" + CLIENT_ID + "&app-name=anantplay&app-version=" + version);
         c.setRequestMethod(method);
-        c.setRequestProperty("User-Agent", "FMHYPlay/" + version);
+        c.setRequestProperty("User-Agent", "AnantPlay/" + version);
         if (token != null) c.setRequestProperty("Authorization", "Bearer " + token);
         if (body != null) {
             c.setDoOutput(true);

@@ -16,8 +16,8 @@
     <string name="home_more">More</string>
     <string name="home_other_languages">Other languages</string>
     <string name="home_clear_favorites_title">Clear all favorites?</string>
-    <string name="home_clear_favorites_msg_one">Removes %1$d site from Favorites, including sites you added yourself. FMHY\'s own lists stay.</string>
-    <string name="home_clear_favorites_msg_many">Removes %1$d sites from Favorites, including sites you added yourself. FMHY\'s own lists stay.</string>
+    <string name="home_clear_favorites_msg_one">Removes %1$d site from Favorites, including sites you added yourself. The lists from your sources stay.</string>
+    <string name="home_clear_favorites_msg_many">Removes %1$d sites from Favorites, including sites you added yourself. The lists from your sources stay.</string>
     <string name="home_clear_all">Clear all</string>
     <string name="home_favorites_cleared">Favorites cleared</string>
     <string name="home_voice_prompt">Say a title, site or channel</string>
@@ -54,13 +54,7 @@
     <string name="home_add_favorite">"♥  Add to favorites"</string>
     <string name="home_channels_one">%1$d channel</string>
     <string name="home_channels_many">%1$d channels</string>
-    <string name="home_extras_title">Extra source list</string>
-    <string name="home_extras_msg">Link to a text file, one \"label|url\" line per playlist. Empty means none.</string>
     <string name="home_save">Save</string>
-    <string name="home_fetching">Fetching…</string>
-    <string name="home_source_updated">Source list updated</string>
-    <string name="home_list_offline">Can\'t reach the list</string>
-    <string name="home_default">Default</string>
     <string name="home_playlist_name_hint">Name, e.g. Sports (shown as its row)</string>
     <string name="home_add_playlist_title">Add a playlist or stream</string>
     <string name="home_add_playlist_msg">A playlist (M3U) or a single stream link (.m3u8)</string>
@@ -84,8 +78,8 @@
     <string name="home_ad_block">Ad block</string>
     <string name="home_ad_block_help">Blocks ad domains, pop-ups and redirects on every site.</string>
     <string name="home_cast_title">Cast to this TV</string>
-    <string name="home_cast_help_ready">Phones with FMHYPlay on the same Wi-Fi find this TV as \"%1$s\" (Cast button in the player). A cast opens the player even when FMHYPlay is closed.</string>
-    <string name="home_cast_help_allow">Phones with FMHYPlay on the same Wi-Fi find this TV as \"%1$s\" (Cast button in the player). Allow Display over other apps so a cast opens even when FMHYPlay is closed.</string>
+    <string name="home_cast_help_ready">Phones with AnantPlay on the same Wi-Fi find this TV as \"%1$s\" (Cast button in the player). A cast opens the player even when AnantPlay is closed.</string>
+    <string name="home_cast_help_allow">Phones with AnantPlay on the same Wi-Fi find this TV as \"%1$s\" (Cast button in the player). Allow Display over other apps so a cast opens even when AnantPlay is closed.</string>
     <string name="home_ready">Ready</string>
     <string name="home_allow">Allow</string>
     <string name="home_address_bar">Address bar</string>
@@ -126,9 +120,7 @@
     <string name="home_mylist_cleared">My list cleared</string>
     <string name="home_adult">Adult channels</string>
     <string name="home_adult_help">Shows the Mature category on the IPTV tab. Off by default.</string>
-    <string name="home_extras_help">More playlists and title links, from a text file you choose (it starts on the project\'s own list).</string>
     <string name="home_none">None</string>
-    <string name="home_custom">Custom</string>
     <string name="home_add_playlist_help">Paste a playlist or a single stream link (.m3u8), or sign in with Xtream. Each playlist gets its own row on the IPTV tab.</string>
     <string name="home_playlist_channels_one">%1$d channel. Press to remove.</string>
     <string name="home_playlist_channels_many">%1$d channels. Press to remove.</string>
@@ -160,13 +152,13 @@
     <string name="home_auto_subs_help">Movies and episodes start with %1$s subtitles (the last language you picked): the stream\'s own, else OpenSubtitles. A file you picked for a video always comes back.</string>
     <string name="home_simkl_help">Marks movies and episodes you watch in the player as watched on Simkl, a free tracker. Titles opened from Movies, TV or Anime.</string>
     <string name="home_simkl_disconnect_title">Disconnect Simkl?</string>
-    <string name="home_simkl_disconnect_msg">FMHYPlay stops telling Simkl what you watch. Your Simkl history stays.</string>
+    <string name="home_simkl_disconnect_msg">AnantPlay stops telling Simkl what you watch. Your Simkl history stays.</string>
     <string name="home_disconnect">Disconnect</string>
     <string name="home_connected">Connected</string>
     <string name="home_connect">Connect</string>
     <string name="home_updates">Updates</string>
     <string name="home_check_updates">Check for updates</string>
-    <string name="home_check_updates_help">FMHYPlay %1$s. Asks GitHub for a newer release and installs it on your say.</string>
+    <string name="home_check_updates_help">AnantPlay %1$s. Asks GitHub for a newer release and installs it on your say.</string>
     <string name="home_up_to_date">Up to date</string>
     <string name="home_version_available">%1$s available</string>
     <string name="home_check_at_start">Check automatically</string>
@@ -175,14 +167,12 @@
     <string name="home_add_site_help">Any streaming site by its address. It goes to Favorites on Home.</string>
     <string name="home_my_sites">My site list</string>
     <string name="home_my_sites_help">One site per line: name|address, or just the address. Shown on Home as its own row, and found by search.</string>
-    <string name="home_my_sites_hint">name|https://example.com\nhttps://another.site</string>
-    <string name="home_refresh_fmhy">Refresh FMHY lists</string>
-    <string name="home_refresh_fmhy_help">Checks FMHY for new and removed sites (also every 12 hours).</string>
-    <string name="home_checking_fmhy">Checking FMHY…</string>
-    <string name="home_site_list_updated">Site list updated</string>
-    <string name="home_site_list_current">Site list is up to date</string>
-    <string name="home_about_tv">"FMHYPlay %1$s  ·  TV build\nSite lists from FMHY. Titles and posters from Cinemeta."</string>
-    <string name="home_about_phone">"FMHYPlay %1$s  ·  phone build\nSite lists from FMHY. Titles and posters from Cinemeta."</string>
+    <string name="home_my_sites_hint">name|https://example.com
+https://another.site</string>
+    <string name="home_about_tv">"AnantPlay %1$s  ·  TV build
+Sites and channels from the sources you add. Titles and posters from Cinemeta."</string>
+    <string name="home_about_phone">"AnantPlay %1$s  ·  phone build
+Sites and channels from the sources you add. Titles and posters from Cinemeta."</string>
     <string name="home_getting_code">Getting a code…</string>
     <string name="home_connect_simkl">Connect Simkl</string>
     <string name="home_simkl_offline">Can\'t reach Simkl. Check WARP and try again.</string>
@@ -191,7 +181,7 @@
     <string name="home_simkl_expired">The code ran out. Close this and press Simkl again for a new one.</string>
     <string name="home_simkl_refused">Simkl turned this down. Close this and try again.</string>
     <string name="home_update_title">Update %1$s</string>
-    <string name="home_update_ask">Download it and install over FMHYPlay %1$s?</string>
+    <string name="home_update_ask">Download it and install over AnantPlay %1$s?</string>
     <string name="home_share">Share</string>
     <string name="home_share_warp_log">Share WARP log</string>
     <string name="home_no_share_app">No app to share with here. Take a photo of the log instead.</string>
@@ -199,7 +189,7 @@
     <string name="home_close">Close</string>
     <string name="home_checking">Checking…</string>
     <string name="home_github_offline">Can\'t reach GitHub</string>
-    <string name="home_is_latest">FMHYPlay %1$s is the latest</string>
+    <string name="home_is_latest">AnantPlay %1$s is the latest</string>
     <string name="home_kind_movie">Movie</string>
     <string name="home_kind_series">TV Series</string>
     <string name="home_added_mylist">Added to My list</string>
@@ -229,9 +219,28 @@
     <string name="home_clear_web_help">Cookies, logins, cache and saved data of every site.</string>
     <string name="home_web_cleared">Website data cleared</string>
     <string name="home_donate">Donate</string>
-    <string name="home_donate_help">FMHYPlay is free, with no ads and no account. If it saves you time, you can support its development.</string>
+    <string name="home_donate_help">AnantPlay is free, with no ads and no account. If it saves you time, you can support its development.</string>
     <string name="home_about">About</string>
     <string name="home_about_site">Website</string>
     <string name="home_about_source">Source code</string>
     <string name="home_about_bug">Report a problem</string>
+    <string name="home_max_quality">Highest quality</string>
+    <string name="home_max_quality_help">Auto picks up to this. Auto: what this device plays smoothly (its screen, and memory). A quality picked in the player is not limited.</string>
+    <string name="home_auto_value">Auto (%1$s)</string>
+    <string name="home_audio_language">Audio language</string>
+    <string name="home_audio_language_help">Videos with more than one audio track start in this language when they have it. The player\'s Audio button changes it too.</string>
+    <string name="home_audio_original">Original</string>
+    <string name="home_clear_searches">Clear search history</string>
+    <string name="home_searches_count">Saved searches: %1$d</string>
+    <string name="home_clear_searches_msg">The recent searches under the search box are removed.</string>
+    <string name="home_searches_cleared">Search history cleared</string>
+    <string name="home_platforms">Platforms</string>
+    <string name="home_all">All</string>
+    <string name="home_animation">Animation</string>
+    <string name="home_kids">Kids</string>
+    <string name="home_studios">Studios</string>
+    <string name="home_top_rated">Top rated</string>
+    <string name="home_documentaries">Documentaries</string>
+    <string name="home_swipe_controls">Swipe for brightness and volume</string>
+    <string name="home_swipe_controls_help">Swipe up or down on the left of the picture for brightness, on the right for volume</string>
 </resources>

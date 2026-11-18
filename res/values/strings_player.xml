@@ -25,10 +25,8 @@
     <string name="player_speed">Speed</string>
     <string name="player_speed_now">Speed · %1$s</string>
     <string name="player_zoom_fit">Fit</string>
-    <string name="player_zoom_fill">Fill</string>
+    <string name="player_zoom_fill">Crop</string>
     <string name="player_zoom_stretch">Stretch</string>
-    <string name="player_zoom_16_9">16:9</string>
-    <string name="player_zoom_4_3">4:3</string>
     <string name="player_zoom_now">Zoom · %1$s</string>
     <string name="player_debug_now">Debug overlay: %1$s</string>
     <string name="player_zoom_say">Zoom: %1$s</string>
@@ -37,7 +35,7 @@
     <string name="player_full_screen">Full screen</string>
     <string name="player_subs_file">Subtitles %1$d (%2$s)</string>
     <string name="player_channel_offline">Channel is offline (%1$s)</string>
-    <string name="player_cant_play">FMHYPlayer could not play this (%1$s), back to the page</string>
+    <string name="player_cant_play">AnantPlayer could not play this (%1$s), back to the page</string>
     <string name="player_resumed_at">Resumed at %1$s</string>
     <string name="player_live">LIVE</string>
     <string name="player_no_servers">No servers list found on this page</string>
@@ -93,9 +91,9 @@
     <string name="cast_channel">Cast</string>
     <string name="cast_ready">Ready for casts from your phone</string>
     <string name="cast_sending_video">Sending a video to your TV</string>
-    <string name="cast_label_app">%1$s - FMHYPlay (Recommended)</string>
+    <string name="cast_label_app">%1$s - AnantPlay (Recommended)</string>
     <string name="cast_label_chromecast">%1$s - Chromecast</string>
-    <string name="cast_blocked">The TV did not open it. On the TV: FMHYPlay, Settings, Cast to this TV, and allow it</string>
+    <string name="cast_blocked">The TV did not open it. On the TV: AnantPlay, Settings, Cast to this TV, and allow it</string>
     <string name="cast_tv_cant_open">The TV could not open this video</string>
     <string name="cast_volume_down">Volume −</string>
     <string name="cast_volume_up">Volume +</string>
@@ -128,4 +126,5 @@
     <string name="player_lock">Lock</string>
     <string name="player_unlock">Unlock</string>
     <string name="player_locked">Locked. Tap the lock on the left to unlock.</string>
+    <string name="player_auto_up_to">Auto · up to %1$s</string>
 </resources>

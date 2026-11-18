@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -74,8 +75,10 @@ public class PlayerActivity extends Activity {
 
     ExoPlayer player;
     SurfaceView surface;
+    android.view.TextureView texture;   // Crop and Stretch draw here (see fit)
+    boolean onTexture;
     TextView subtitle, title, time, timeTotal, notice;
-    ProgressBar spinner;
+    View spinner;
     ImageView playPause;
     SeekBar seek;
     View controls;
@@ -116,7 +119,7 @@ public class PlayerActivity extends Activity {
     ImageView lockBtn;
     final Runnable hideLock = () -> { if (locked) lockBtn.setVisibility(View.GONE); };   // the lock steps out of the way; a touch brings it back
     int zoom = 0;   // Fit at the start of every playback (the choice is not remembered)
-    static final int[] ZOOMS = {R.string.player_zoom_fit, R.string.player_zoom_fill, R.string.player_zoom_stretch, R.string.player_zoom_16_9, R.string.player_zoom_4_3};
+    static final int[] ZOOMS = {R.string.player_zoom_fit, R.string.player_zoom_fill, R.string.player_zoom_stretch};
     android.media.audiofx.LoudnessEnhancer booster;   // Volume boost, on the player's audio session
     android.media.audiofx.Equalizer voices;           // Dialog boost, same session
     // Every video starts with the Settings defaults; the Audio button changes them for this video only
@@ -382,6 +385,9 @@ public class PlayerActivity extends Activity {
         root.setDefaultFocusHighlightEnabled(false);   // a remote key would grey out the whole picture
         surface = new SurfaceView(this);
         root.addView(surface, new FrameLayout.LayoutParams(-1, -1));
+        texture = new android.view.TextureView(this);
+        texture.setVisibility(View.GONE);
+        root.addView(texture, new FrameLayout.LayoutParams(-1, -1));
         root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             fit();
             if (r - l != or - ol) {
@@ -398,8 +404,7 @@ public class PlayerActivity extends Activity {
         root.addView(subtitle, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
         placeSubtitle();
 
-        spinner = new ProgressBar(this);
-        spinner.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(Home.ACCENT));
+        spinner = new Home.Spinner(this);
         root.addView(spinner, new FrameLayout.LayoutParams(dp(56), dp(56), Gravity.CENTER));
 
         notice = new TextView(this);
@@ -463,7 +468,7 @@ public class PlayerActivity extends Activity {
         title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         title.setSingleLine();
         title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        // A page's title carries the site name ("Game of Thrones | Movy"): show just the title
+        // A page's title carries the site name ("Game of Thrones | SiteName"): show just the title
         String shown = getIntent().getStringExtra("title");
         if (getIntent().hasExtra("pageTitle")) {
             String clean = History.cleanTitle(String.valueOf(getIntent().getStringExtra("pageTitle")), String.valueOf(getIntent().getStringExtra("site")));
@@ -661,6 +666,11 @@ public class PlayerActivity extends Activity {
     float downX, downY, startLevel;
     int swipeKind;   // 0 undecided, 1 brightness, 2 volume, -1 not a vertical swipe
 
+    /** Settings, Player: swiping up and down on the picture changes the brightness (left half) and the volume (right half). On unless turned off. */
+    static boolean swipeOn() {
+        return App.prefs.getBoolean("swipeControls", true);
+    }
+
     float brightnessNow() {
         float b = getWindow().getAttributes().screenBrightness;
         if (b >= 0) return b;
@@ -757,7 +767,7 @@ public class PlayerActivity extends Activity {
                     float slop = dp(14);
                     if (Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy)) { swipeKind = -1; return false; }
                     if (Math.abs(dy) < slop) return false;
-                    if (downX < dp(28) || downX > v.getWidth() - dp(28)) { swipeKind = -1; return false; }
+                    if (!swipeOn() || downX < dp(28) || downX > v.getWidth() - dp(28)) { swipeKind = -1; return false; }   // off in Settings, or the screen's edge (the system's back swipe)
                     swipeKind = downX < v.getWidth() / 2f ? 1 : 2;
                     startLevel = swipeKind == 1 ? brightnessNow() : volumeNow();
                     MotionEvent c = MotionEvent.obtain(ev);   // the view saw a press: end it so it does not count as a tap
@@ -866,6 +876,52 @@ public class PlayerActivity extends Activity {
     /** "1080p" for 1080, "4K" for 2160 and up, "" when unknown. */
     static String heightLabel(int h) {
         return h <= 0 ? "" : h >= 2160 ? "4K" : h + "p";
+    }
+
+    // ---- defaults: the tallest picture Auto plays, and the audio language ----
+
+    static final int[] QUALITY_CAPS = {0, 2160, 1440, 1080, 720, 480};   // Settings, Highest quality; 0 = this device decides
+    static final String ORIGINAL = "orig";                                 // audioLang: the stream's own default track
+
+    /**
+     * What this device plays smoothly: its screen's height, and no more than 1080p with under 3 GB of memory or a player heap under
+     * 256 MB (a 2.4 GB TV dropped frames at 4K), 720p under 1.5 GB or with a heap under 128 MB (an 80 MB one skipped frames at 1080p).
+     */
+    static int autoMaxHeight(Context c) {
+        int screen = 0;
+        try {
+            for (android.view.Display.Mode m : c.getSystemService(android.hardware.display.DisplayManager.class).getDisplay(android.view.Display.DEFAULT_DISPLAY).getSupportedModes())
+                screen = Math.max(screen, Math.min(m.getPhysicalWidth(), m.getPhysicalHeight()));
+        } catch (RuntimeException ignored) { }
+        android.app.ActivityManager am = c.getSystemService(android.app.ActivityManager.class);
+        android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+        am.getMemoryInfo(mi);
+        long mb = mi.totalMem >> 20;
+        int memory = am.isLowRamDevice() || mb < 1536 || am.getMemoryClass() < 128 ? 720 : mb < 3072 || am.getMemoryClass() < 256 ? 1080 : Integer.MAX_VALUE;
+        return Math.min(screen > 0 ? screen : 1080, memory);
+    }
+
+    static int maxHeight(Context c) {
+        int set = App.prefs.getInt("maxQuality", 0);
+        return set > 0 ? set : autoMaxHeight(c);
+    }
+
+    static String[] audioLanguages() {
+        String set = App.prefs.getString("audioLang", ""), device = Locale.getDefault().getLanguage();
+        return set.equals(ORIGINAL) ? new String[0] : set.isEmpty() || set.equals(device) ? new String[]{device} : new String[]{set, device};
+    }
+
+    /** A site's audio choice ("Hindi", "हिन्दी", "Hindi Dub") is the language set in Settings (Auto: the device's). */
+    static boolean preferredLanguage(String label) {
+        String set = App.prefs.getString("audioLang", "");
+        if (set.equals(ORIGINAL)) return false;
+        Locale l = new Locale(set.isEmpty() ? Locale.getDefault().getLanguage() : set);
+        String have = label.trim().toLowerCase(Locale.ROOT);
+        for (String name : new String[]{l.getDisplayLanguage(Locale.ENGLISH), l.getDisplayLanguage(l), l.getDisplayLanguage()}) {
+            String n = name.toLowerCase(Locale.ROOT);
+            if (!n.isEmpty() && (have.equals(n) || have.startsWith(n + " ") || have.startsWith(n + "("))) return true;
+        }
+        return false;
     }
 
     /** "1080p60": the height and, when the frame rate is known, the rate rounded (23.976 is 24, 59.94 is 60). */
@@ -1107,7 +1163,8 @@ public class PlayerActivity extends Activity {
             }
         };
         player = new ExoPlayer.Builder(this, renderers.setEnableDecoderFallback(true).setMediaCodecSelector(PlayerActivity::decoders))
-            .setMediaSourceFactory(new DefaultMediaSourceFactory(data)).setHandleAudioBecomingNoisy(true).build();
+            .setMediaSourceFactory(new DefaultMediaSourceFactory(data)).setHandleAudioBecomingNoisy(true)
+            .setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder().setTargetBufferBytes(PlayerStats.bufferBytes(Runtime.getRuntime().maxMemory())).build()).build();
         player.setAudioAttributes(new androidx.media3.common.AudioAttributes.Builder().setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true);
         player.setVideoSurfaceView(surface);
@@ -1116,11 +1173,11 @@ public class PlayerActivity extends Activity {
         // Its own audio session from the start, so the boosts attach to this video only (session 0 would be all of the phone's sound)
         player.setAudioSessionId(((AudioManager) getSystemService(AUDIO_SERVICE)).generateAudioSessionId());
         applyBoost(false);
-        // Side-loaded subtitles stay off until picked on the Subtitles button. Audio: the language last picked on the Audio
-        // button (a dub the stream offers), else the device's, else whatever the stream marks as default (often English)
-        String audio = App.prefs.getString("audioLang", "");
+        // Side-loaded subtitles stay off until picked on the Subtitles button. Audio: the language set in Settings or last picked on
+        // the Audio button (a dub the stream offers), else the device's; "Original" keeps whatever the stream marks as its default.
+        // Quality: Auto stops at what this device plays smoothly (maxHeight); a quality picked by hand is not limited
         player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-            .setPreferredAudioLanguages(audio.isEmpty() ? new String[]{Locale.getDefault().getLanguage()} : new String[]{audio, Locale.getDefault().getLanguage()}).build());
+            .setPreferredAudioLanguages(audioLanguages()).setMaxVideoSize(Integer.MAX_VALUE, maxHeight(this)).build());
         player.addAnalyticsListener(stats);
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int s) {
@@ -1153,7 +1210,11 @@ public class PlayerActivity extends Activity {
                 measuredFps = 0;
                 fpsMinGapUs = Long.MAX_VALUE;
                 fpsFrames = 0;
-                if (v.width > 0 && v.height > 0) videoRatio = v.width * v.pixelWidthHeightRatio / v.height;
+                if (v.width > 0 && v.height > 0) {
+                    float ratio = v.width * v.pixelWidthHeightRatio / v.height;
+                    if (Math.abs(ratio - videoRatio) > 0.01f) barX = barY = -1;   // another picture shape: other bars
+                    videoRatio = ratio;
+                }
                 fit();
                 updatePip();
                 refreshChips();
@@ -1177,7 +1238,7 @@ public class PlayerActivity extends Activity {
                         Log.w(TAG, "FAILED " + c + " " + ((androidx.media3.datasource.HttpDataSource.HttpDataSourceException) c).dataSpec.uri);
                     } else if (c instanceof androidx.media3.common.ParserException) Log.w(TAG, "FAILED parse " + c.getMessage() + " stream " + getIntent().getStringExtra("url"));
                 }
-                if (getIntent().hasExtra("mime")) { Iptv.mark(channel(), false); Iptv.saveHealth(); }
+                // a channel that fails once stays listed (a stream can be down for a while, or fail on this device only); only the background check hides one
                 Toast.makeText(PlayerActivity.this, App.t(getIntent().hasExtra("mime") ? R.string.player_channel_offline : R.string.player_cant_play, e.getErrorCodeName()),
                     Toast.LENGTH_LONG).show();
                 setResult(RESULT_CANCELED);
@@ -1239,28 +1300,96 @@ public class PlayerActivity extends Activity {
         refreshChips();
     }
 
-    // The surface is sized to the picture: Fit letterboxes (nothing stretched), Fill crops to cover the screen, Stretch fills it,
-    // 16:9 and 4:3 force that shape
+    // Fit letterboxes (nothing stretched), Crop covers the screen and cuts what is past its edges (nothing stretched either; black bars inside
+    // the picture go too), Stretch pulls the picture (without its bars) to the screen's shape
     void fit() {
         View root = (View) surface.getParent();
         int w = root.getWidth(), h = root.getHeight();
         if (w == 0 || h == 0 || (videoRatio <= 0 && zoom != 2)) return;
-        float r = zoom == 3 ? 16f / 9 : zoom == 4 ? 4f / 3 : videoRatio;
+        float r = videoRatio;
         int vw = w, vh = h;
         if (zoom == 1) {
-            vh = Math.round(w / r);
-            if (vh < h) { vh = h; vw = Math.round(h * r); }
-        } else if (zoom != 2) {
+            float k = Math.max(w / (r * (1 - 2 * Math.max(0, barX))), h / (1 - 2 * Math.max(0, barY)));   // the picture without its own black bars covers the screen
+            vw = Math.round(r * k);
+            vh = Math.round(k);
+        } else if (zoom == 2) {   // the picture without its own black bars, pulled to the screen
+            vw = Math.round(w / (1 - 2 * Math.max(0, barX)));
+            vh = Math.round(h / (1 - 2 * Math.max(0, barY)));
+        } else {
             vh = Math.round(w / r);
             if (vh > h) { vh = h; vw = Math.round(h * r); }
         }
+        if (zoom != 0) {
+            // A SurfaceView bigger than the screen is squeezed back into it by some TVs (on a TCL, Crop looked just like Stretch): what reaches
+            // past the edges is drawn on a TextureView, which is cut at the screen like any view, scaled about its middle
+            useTexture(true);
+            android.graphics.Matrix m = new android.graphics.Matrix();
+            m.setScale(vw / (float) w, vh / (float) h, w / 2f, h / 2f);
+            texture.setTransform(m);
+            return;
+        }
+        useTexture(false);   // Fit: the SurfaceView (the cheapest way to show video), never bigger than the screen
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) surface.getLayoutParams();
         if (lp.width == vw && lp.height == vh) return;
         surface.setLayoutParams(new FrameLayout.LayoutParams(vw, vh, Gravity.CENTER));
     }
 
+    void useTexture(boolean on) {
+        if (on == onTexture || player == null) return;
+        onTexture = on;
+        (on ? texture : surface).setVisibility(View.VISIBLE);
+        if (on) player.setVideoTextureView(texture); else player.setVideoSurfaceView(surface);
+        (on ? surface : texture).setVisibility(View.GONE);
+    }
+
+    float barX = -1, barY = -1;   // Fill and Stretch: the share of the picture, each side, that is black bars baked into the video (a wide film in a 16:9 frame); -1 = not measured
+
+    /** While Fill or Stretch is on: a small copy of the frame every 2 s, to find those bars. The smallest seen is kept, since a dark scene shows more black than there is. */
+    final Runnable barLoop = new Runnable() {
+        @Override public void run() {
+            if (zoom == 0 || isFinishing()) return;
+            App.main.postDelayed(this, 2000);
+            if (player == null || !player.isPlaying()) return;
+            if (onTexture) {   // the frame as the decoder gave it (the view's scaling is not in it)
+                android.graphics.Bitmap b = texture.isAvailable() ? texture.getBitmap(160, 90) : null;
+                if (b != null) bars(b);
+                return;
+            }
+            if (surface.getWidth() == 0 || !surface.getHolder().getSurface().isValid()) return;
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(160, 90, android.graphics.Bitmap.Config.ARGB_8888);
+            try {
+                android.view.PixelCopy.request(surface, bmp, res -> { if (res == android.view.PixelCopy.SUCCESS) bars(bmp); }, App.main);
+            } catch (RuntimeException ignored) { }   // a protected video cannot be copied: nothing to measure
+        }
+    };
+
+    void bars(android.graphics.Bitmap b) {
+        int w = b.getWidth(), h = b.getHeight();
+        int[] px = new int[w * h], rows = new int[h], cols = new int[w];
+        b.getPixels(px, 0, w, 0, 0, w, h);
+        for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
+            int p = px[y * w + x];
+            if ((p >> 16 & 255) + (p >> 8 & 255) + (p & 255) > 3 * 28) { rows[y]++; cols[x]++; }
+        }
+        float ny = bar(rows, w), nx = bar(cols, h);   // a few lit pixels (a logo, noise) do not count as picture
+        float oy = barY, ox = barX;
+        if (ny >= 0) barY = barY < 0 ? ny : Math.min(barY, ny);
+        if (nx >= 0) barX = barX < 0 ? nx : Math.min(barX, nx);
+        if (Math.abs(barY - oy) > 0.004f || Math.abs(barX - ox) > 0.004f) fit();
+    }
+
+    /** The bars at the ends of one axis as a share of it, when they match (real bars do; a dark scene rarely does); -1 when they do not or there is no picture. `lit` = lit pixels per line, `len` = a line's pixels. */
+    static float bar(int[] lit, int len) {
+        int n = lit.length, min = Math.max(2, len * 3 / 100), a = 0, z = 0;
+        while (a < n && lit[a] < min) a++;
+        while (z < n && lit[n - 1 - z] < min) z++;
+        if (a >= n || Math.abs(a - z) > n * 3 / 100) return -1;
+        return Math.min(0.3f, Math.min(a, z) == 0 ? 0 : Math.min(a, z) / (float) n + 0.004f);   // a hair more, so no sliver of the bar is left
+    }
+
     void cycleZoom() {
         zoom = (zoom + 1) % ZOOMS.length;
+        if (zoom != 0) { App.main.removeCallbacks(barLoop); App.main.post(barLoop); }   // it stops by itself once Fit is back
         fit();
         say(App.t(R.string.player_zoom_say, App.t(ZOOMS[zoom])));
         refreshChips();
@@ -1321,10 +1450,15 @@ public class PlayerActivity extends Activity {
     }
 
     void say(String s) {
+        say(s, 1200);
+    }
+
+    /** A notice for `ms`: a reason (why a download is not started) needs time to be read. */
+    void say(String s, long ms) {
         notice.setText(s);
         notice.setVisibility(View.VISIBLE);
         App.main.removeCallbacks(hideNotice);
-        App.main.postDelayed(hideNotice, 1200);
+        App.main.postDelayed(hideNotice, ms);
     }
 
     final Runnable hideNotice = () -> notice.setVisibility(View.GONE);
@@ -1460,8 +1594,24 @@ public class PlayerActivity extends Activity {
     // Quality: the stream's own choices if it has several, else the page's quality list (a page that serves one playlist per quality)
     void pickQuality() {
         WebActivity page = WebActivity.active;
-        if (page != null && !page.qualities.isEmpty() && countVideo(player.getCurrentTracks()) <= 1) pickFromPage(page.qualities, App.t(R.string.player_quality), App.t(R.string.player_no_quality));
+        if (page != null && !page.qualities.isEmpty() && countVideo(player.getCurrentTracks()) <= 1) pickFromPage(byHeight(page.qualities), App.t(R.string.player_quality), App.t(R.string.player_no_quality));
         else pickVideo(player.getCurrentTracks());
+    }
+
+    /** A page's qualities highest first ("Auto" and other words on top): sites list them in whatever order their menu has right now. */
+    static Map<String, String[]> byHeight(Map<String, String[]> list) {
+        List<Map.Entry<String, String[]>> all = new ArrayList<>(list.entrySet());
+        all.sort((a, b) -> Integer.compare(height(b.getValue()[0]), height(a.getValue()[0])));
+        Map<String, String[]> out = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, String[]> e : all) out.put(e.getKey(), e.getValue());
+        return out;
+    }
+
+    static final java.util.regex.Pattern HEIGHT = java.util.regex.Pattern.compile("(\\d{3,4})p|\\b([48])K\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    static int height(String label) {
+        java.util.regex.Matcher m = HEIGHT.matcher(label);
+        return !m.find() ? Integer.MAX_VALUE : m.group(1) != null ? Integer.parseInt(m.group(1)) : m.group(2).equals("4") ? 2160 : 4320;
     }
 
     void pickFromPage(Map<String, String[]> list, String title, String none) {
@@ -1510,7 +1660,10 @@ public class PlayerActivity extends Activity {
         }
         List<String> labels = new ArrayList<>();
         List<TrackSelectionOverride> picks = new ArrayList<>();
-        labels.add(App.t(R.string.player_auto));
+        int cap = maxHeight(this);
+        boolean capped = false;
+        for (int key : byKey.keySet()) if (key / 1000 > cap) capped = true;
+        labels.add(capped ? App.t(R.string.player_auto_up_to, heightLabel(cap)) : App.t(R.string.player_auto));   // "Auto · up to 1080p" when the stream has more
         picks.add(null);
         for (Map.Entry<Integer, TrackSelectionOverride> en : byKey.entrySet()) {
             labels.add(names.get(en.getKey()));
@@ -1671,7 +1824,7 @@ public class PlayerActivity extends Activity {
             row.setBackground(st);
             row.setFocusable(true);
             row.setDefaultFocusHighlightEnabled(false);
-            row.setOnClickListener(v -> { d.dismiss(); pick.onClick(d, n); });
+            row.setOnClickListener(v -> { d.dismiss(); pick.onClick(d, n); if (App.tv) App.main.postDelayed(this::backToVideo, 150); });
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
             rp.setMargins(dp(8), dp(1), dp(8), dp(1));
             list.addView(row, rp);
@@ -1690,6 +1843,15 @@ public class PlayerActivity extends Activity {
         w.setDimAmount(0.3f);
         d.show();
         if (first != null) { View f = first; f.post(f::requestFocus); }
+    }
+
+    /**
+     * TV, after a pick in a list (a quality, a server, a speed...): back to the video, the controls hidden, as TV players do. Not when the pick
+     * opened another list or panel (it has the focus then); Back out of a list still returns to its button.
+     */
+    void backToVideo() {
+        if (isFinishing() || panel != null || !hasWindowFocus()) return;
+        hideControls();   // rowFocus(false) takes the focus off the buttons; the next key acts on the video
     }
 
     /** More: the settings changed less often, each with its value now. */
@@ -1762,7 +1924,7 @@ public class PlayerActivity extends Activity {
         App.io.execute(() -> {
             Downloads.Plan plan = Downloads.plan(url, headers, dash);
             if (plan.height == 0) plan.height = playing;
-            runOnUiThread(() -> showConfirm(base, plan, null));
+            runOnUiThread(() -> { if (plan.error != null) say(plan.error, 4000); else showConfirm(base, plan, null); });   // nothing is started for a stream that cannot be saved
         });
     }
 
@@ -2390,7 +2552,7 @@ public class PlayerActivity extends Activity {
             player.getPlaybackState() == Player.STATE_ENDED ? dur : player.getCurrentPosition(), dur, session);
     }
 
-    // ---- Cast (phone): send this video to an FMHYPlay TV on the same Wi-Fi, then be its remote ----
+    // ---- Cast (phone): send this video to an AnantPlay TV on the same Wi-Fi, then be its remote ----
 
     void pickTv() {
         java.util.List<String[]> list = Cast.targets();
@@ -2405,7 +2567,7 @@ public class PlayerActivity extends Activity {
         });
     }
 
-    /** t = {label, "cast" or "app", name, host:port}: Google Cast through the phone, or FMHYPlay on the TV. */
+    /** t = {label, "cast" or "app", name, host:port}: Google Cast through the phone, or AnantPlay on the TV. */
     void castTo(String[] t) {
         String name = t[2];
         say(App.t(R.string.cast_sending, name));

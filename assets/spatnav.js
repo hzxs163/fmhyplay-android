@@ -126,7 +126,7 @@
   }
 
   // In pointer mode the page gets no highlights at all (the app tells us through the bridge)
-  const pointerMode = () => { try { return !!(window.FMHY && FMHY.pointer && FMHY.pointer()); } catch (e) { return false; } };
+  const pointerMode = () => { try { return !!(window.AnantPlay && AnantPlay.pointer && AnantPlay.pointer()); } catch (e) { return false; } };
   const clear = () => {
     document.querySelectorAll('.__fp').forEach(e => e.classList.remove('__fp'));
     const a = document.activeElement;
@@ -221,7 +221,7 @@
       return;
     }
     const a = el.closest('a[href]');
-    if (a && window.FMHY) FMHY.clicked(a.href);
+    if (a && window.AnantPlay) AnantPlay.clicked(a.href);
     if (!el.matches('a,button,input,summary,label')) {
       const r = el.getBoundingClientRect(), at = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
       for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup'])
@@ -372,7 +372,7 @@
   // and nobody has pressed a key for a few seconds, hide whatever overlaps it (subtitles stay); any input brings it all back.
   const clean = (() => {
     let hidden = [], last = Date.now(), timer = 0;
-    const on = () => { try { return !!(window.FMHY && FMHY.cleanVideo && FMHY.cleanVideo()); } catch (e) { return false; } };
+    const on = () => { try { return !!(window.AnantPlay && AnantPlay.cleanVideo && AnantPlay.cleanVideo()); } catch (e) { return false; } };
     const SUBTITLE = /subtitle|caption|\bcue|jassub|octopus|ass-?canvas|lyric/i;
     // A stalled video still counts as playing: stalls are what the overlays cause, so un-hiding on a stall would keep it stuck
     const playing = () => { const v = bigVideo(); return v && !v.paused && !v.ended ? v : null; };
@@ -401,7 +401,7 @@
 
     timer = setInterval(() => {
       const v = playing();
-      if (v) try { window.FMHY && FMHY.videoPlaying && FMHY.videoPlaying(); } catch (e) { }   // the app hides its cursor while one plays
+      if (v) try { window.AnantPlay && AnantPlay.videoPlaying && AnantPlay.videoPlaying(); } catch (e) { }   // the app hides its cursor while one plays
       if (!on() || !v) { if (hidden.length) reveal(); return; }
       if (!hidden.length && Date.now() - last > 4000 && !popups().size) hide(v);
     }, 1000);

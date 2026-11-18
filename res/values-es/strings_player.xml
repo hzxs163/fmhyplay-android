@@ -22,10 +22,8 @@
     <string name="player_speed">Velocidad</string>
     <string name="player_speed_now">Velocidad · %1$s</string>
     <string name="player_zoom_fit">Ajustar</string>
-    <string name="player_zoom_fill">Llenar</string>
+    <string name="player_zoom_fill">Recortar</string>
     <string name="player_zoom_stretch">Estirar</string>
-    <string name="player_zoom_16_9">16:9</string>
-    <string name="player_zoom_4_3">4:3</string>
     <string name="player_zoom_now">Zoom · %1$s</string>
     <string name="player_debug_now">Superposición de depuración: %1$s</string>
     <string name="player_zoom_say">Zoom: %1$s</string>
@@ -34,7 +32,7 @@
     <string name="player_full_screen">Pantalla completa</string>
     <string name="player_subs_file">Subtítulos %1$d (%2$s)</string>
     <string name="player_channel_offline">El canal está fuera de línea (%1$s)</string>
-    <string name="player_cant_play">FMHYPlayer no pudo reproducir esto (%1$s), volviendo a la página</string>
+    <string name="player_cant_play">AnantPlayer no pudo reproducir esto (%1$s), volviendo a la página</string>
     <string name="player_resumed_at">Reanudado en %1$s</string>
     <string name="player_live">EN VIVO</string>
     <string name="player_no_servers">No se encontró una lista de servidores en esta página</string>
@@ -90,9 +88,9 @@
     <string name="cast_channel">Transmitir</string>
     <string name="cast_ready">Listo para recibir videos de tu teléfono</string>
     <string name="cast_sending_video">Enviando un video a tu TV</string>
-    <string name="cast_label_app">%1$s - FMHYPlay (Recomendado)</string>
+    <string name="cast_label_app">%1$s - AnantPlay (Recomendado)</string>
     <string name="cast_label_chromecast">%1$s - Chromecast</string>
-    <string name="cast_blocked">La TV no lo abrió. En la TV: FMHYPlay, Configuración, Transmitir a esta TV, y permítelo</string>
+    <string name="cast_blocked">La TV no lo abrió. En la TV: AnantPlay, Configuración, Transmitir a esta TV, y permítelo</string>
     <string name="cast_tv_cant_open">La TV no pudo abrir este video</string>
     <string name="cast_volume_down">Volumen −</string>
     <string name="cast_volume_up">Volumen +</string>
@@ -122,4 +120,5 @@
     <string name="player_more">Más</string>
     <string name="player_channels">Canales</string>
     <string name="player_more_watch">Más para ver</string>
+    <string name="player_auto_up_to">Automático · hasta %1$s</string>
 </resources>

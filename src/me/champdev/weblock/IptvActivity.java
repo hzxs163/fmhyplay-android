@@ -94,7 +94,7 @@ public class IptvActivity extends Home {
         root.addView(filters, new LinearLayout.LayoutParams(-1, -2));
 
         // Square tiles, 6 across on a TV and 3 on a phone
-        int cols = App.tv ? 8 : 3, gap = dp(gapDp);
+        int cols = App.tv ? 6 : 3, gap = dp(gapDp);
         cell = (winW() - 2 * side - gap * (cols - 1)) / cols - 1;
         list = new GridView(this);
         list.setNumColumns(cols);
