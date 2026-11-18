@@ -441,7 +441,8 @@ public class WebActivity extends Activity {
                 String scheme = String.valueOf(r.getUrl().getScheme()).toLowerCase();
                 if (scheme.matches("about|data|blob|javascript")) return false;
                 if (scheme.matches("https?")) {
-                    if (adBlockOff() || !r.isForMainFrame() || r.isRedirect() || sameSite(url, v.getUrl()) || sameSite(url, link)) return false;
+                    if (!r.isForMainFrame() || r.isRedirect() || sameSite(url, v.getUrl()) || sameSite(url, link)) return false;
+                    if (adBlockOff()) return true;   // the player needs the ads' scripts, not the jump they try to make
                     toast(App.t(R.string.web_blocked, r.getUrl().getHost()));
                 } else if (url.equals(link)) {
                     openExternal(url);
@@ -594,6 +595,9 @@ public class WebActivity extends Activity {
         if (ref != null) hd.put("Referer", ref);
         if (origin == null && ref != null && !originOf(ref).equals(originOf(h.url))) origin = originOf(ref);
         if (origin != null) hd.put("Origin", origin);
+        // Cloudflare-protected stream hosts refuse a player that has none of the page's cookies (cf_clearance and the like)
+        String jar = CookieManager.getInstance().getCookie(h.url);
+        if (jar != null && !jar.isEmpty()) hd.put("Cookie", jar);
         // Keep the page's own player quiet underneath
         web.evaluateJavascript("postMessage({fp:'pause',hold:1},'*');document.querySelectorAll('video,audio').forEach(m=>m.pause());var c=document.getElementById('fp-native');c&&c.remove()", null);
         Intent in = getIntent();
