@@ -441,7 +441,7 @@ public class WebActivity extends Activity {
                 String scheme = String.valueOf(r.getUrl().getScheme()).toLowerCase();
                 if (scheme.matches("about|data|blob|javascript")) return false;
                 if (scheme.matches("https?")) {
-                    if (!r.isForMainFrame() || r.isRedirect() || sameSite(url, v.getUrl()) || sameSite(url, link)) return false;
+                    if (adBlockOff() || !r.isForMainFrame() || r.isRedirect() || sameSite(url, v.getUrl()) || sameSite(url, link)) return false;
                     toast(App.t(R.string.web_blocked, r.getUrl().getHost()));
                 } else if (url.equals(link)) {
                     openExternal(url);
@@ -454,7 +454,7 @@ public class WebActivity extends Activity {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
                 sniffer.request(r.getUrl().toString(), r.getRequestHeaders());
                 String host = r.getUrl().getHost();
-                if (host == null || r.isForMainFrame() || !AdBlock.enabled() || sameSite("https://" + host, siteUrl) || playerAd(host) || !AdBlock.blocked(host, r.getUrl().getPath())) return null;
+                if (host == null || r.isForMainFrame() || !AdBlock.enabled() || sameSite("https://" + host, siteUrl) || adBlockOff() || !AdBlock.blocked(host, r.getUrl().getPath())) return null;
                 return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
             }
 
@@ -753,10 +753,10 @@ public class WebActivity extends Activity {
     }
 
     // ponytail: "site" = last two host labels, so example.co.uk counts every *.co.uk as one site
-    /** MissAV's player asks its ad host for what it needs before the stream starts; an empty answer leaves a dead player. */
-    boolean playerAd(String host) {
+    /** MissAV's player walks its whole ad chain before the stream starts; there the site gets a plain browser's behaviour. */
+    boolean adBlockOff() {
         String page = Uri.parse(String.valueOf(siteUrl)).getHost();
-        return host != null && page != null && page.toLowerCase().contains("missav") && host.toLowerCase().endsWith("twinrdengine.com");
+        return page != null && page.toLowerCase().contains("missav");
     }
 
     static boolean sameSite(String a, String b) {
