@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trakt, AniList and MyAnimeList watch tracking: Settings rows, sign-in and the player toasts. -->
+<resources>
+    <string name="trakt_help">Marks movies and episodes you watch in the player as watched on Trakt, a free tracker. Titles opened from Movies, TV or Anime.</string>
+    <string name="trakt_disconnect_title">Disconnect Trakt?</string>
+    <string name="trakt_disconnect_msg">AnantPlay stops telling Trakt what you watch. Your Trakt history stays.</string>
+    <string name="trakt_connect">Connect Trakt</string>
+    <string name="trakt_offline">Can\'t reach Trakt. Check WARP and try again.</string>
+    <string name="trakt_connected">Trakt connected</string>
+    <string name="trakt_expired">The code ran out. Close this and press Trakt again for a new one.</string>
+    <string name="trakt_refused">Trakt turned this down. Close this and try again.</string>
+    <string name="trakt_marked">Marked watched on Trakt</string>
+    <string name="anilist_help">Sets your progress on AniList when you watch an anime episode in the player. Titles opened from Anime. You sign in on AniList\'s own page.</string>
+    <string name="anilist_disconnect_title">Disconnect AniList?</string>
+    <string name="anilist_disconnect_msg">AnantPlay stops updating AniList. Your list stays.</string>
+    <string name="anilist_connected">AniList connected</string>
+    <string name="anilist_marked">AniList progress updated</string>
+    <string name="mal_help">Sets your progress on MyAnimeList when you watch an anime episode in the player. Titles opened from Anime. You sign in on MyAnimeList\'s own page.</string>
+    <string name="mal_disconnect_title">Disconnect MyAnimeList?</string>
+    <string name="mal_disconnect_msg">AnantPlay stops updating MyAnimeList. Your list stays.</string>
+    <string name="mal_connected">MyAnimeList connected</string>
+    <string name="mal_marked">MyAnimeList progress updated</string>
+    <string name="tracker_signin_failed">Sign-in did not finish. Try again.</string>
+</resources>

@@ -361,13 +361,32 @@ public class PlayerActivity extends Activity {
             for (int i = at; i < sb.length() - 1; i++)
                 if (sb.charAt(i) == '\n' && sb.charAt(i + 1) != '-' && sb.charAt(i + 1) != '\u2013') sb.setCharAt(i, ' ');
         }
+        if (sb.length() != 0) {
+            boolean sinhala = sb.chars().anyMatch(c -> c >= 0x0d80 && c <= 0x0dff);
+            if (sinhala != styledSinhala) styleSubtitle(sinhala);
+        }
         subtitle.setText(sb);
         subtitle.setVisibility(sb.length() == 0 ? View.GONE : View.VISIBLE);
     }
 
+    private android.graphics.Typeface sinTypeface;
+    private boolean sinFontAttempted, styledSinhala;
+    private int subtitleRequest;   // the newest subtitle download: an older one (or a retry of it) is dropped when you pick something else
+
+    private void styleSubtitle(boolean sinhala) {
+        if (sinhala && !sinFontAttempted) {
+            sinFontAttempted = true;
+            try { sinTypeface = android.graphics.Typeface.createFromAsset(getAssets(), "NotoSansSinhala-Regular.ttf"); }
+            catch (RuntimeException ignored) { /* Keep the system font. */ }
+        }
+        styledSinhala = sinhala;
+        subtitle.setTypeface(sinhala ? sinTypeface : null);
+        subtitle.setTextSize((sinhala ? 20f : 22f) * Subs.size() / 100);
+    }
+
     /** Subtitle size, background and distance from the bottom: 22 sp and 20 dp, changed by the Subtitles panel. */
     void placeSubtitle() {
-        subtitle.setTextSize(22f * Subs.size() / 100);
+        styleSubtitle(styledSinhala);
         subtitle.setBackgroundColor((Subs.background() * 255 / 100) << 24);
         subtitle.setTextColor(Subs.color());
         ((FrameLayout.LayoutParams) subtitle.getLayoutParams()).bottomMargin = dp(Math.max(0, 20 + Subs.offset()));
@@ -1738,6 +1757,7 @@ public class PlayerActivity extends Activity {
             if (i == searchAt) { searchSubs(); return; }
             if (i == positionAt) { subtitleStyle(); return; }
             // Off keeps a file or track picked before from coming back; a track of the stream replaces a file; either way the next resume does the same
+            if (type == C.TRACK_TYPE_TEXT) subtitleRequest++;
             if (type == C.TRACK_TYPE_TEXT) for (String k : subKeys(false)) {
                 Subs.remember(k, null);
                 Subs.rememberTrack(k, picks.get(i) == null ? null : langs.get(i), plain.get(i), nums.get(i));
@@ -2414,16 +2434,31 @@ public class PlayerActivity extends Activity {
     // Side-load the file and restart the stream at the same spot with it switched on
     /** Downloads the file (unpacked, converted to UTF-8, kept for next time), then shows it as the subtitle track. */
     void addSubtitle(Subs.Sub sub) {
+        fetchSubtitle(sub, ++subtitleRequest, 0);
+    }
+
+    private void fetchSubtitle(Subs.Sub sub, int request, int attempt) {
+        if (!currentSubtitleRequest(request)) return;
         App.io.execute(() -> {
-            SubFetch.Fetched f;
             try {
-                f = Subs.fetch(sub);
-            } catch (java.io.IOException e) {
-                runOnUiThread(() -> say(App.t(R.string.player_subs_failed)));
-                return;
+                SubFetch.Fetched fetched = Subs.fetch(sub);
+                runOnUiThread(() -> { if (currentSubtitleRequest(request)) showSubtitle(sub, fetched); });
+            } catch (SubFetch.RetryLaterException pending) {
+                runOnUiThread(() -> {
+                    if (!currentSubtitleRequest(request)) return;
+                    if (attempt < 2) {
+                        say(App.t(R.string.player_subs_translating));
+                        App.main.postDelayed(() -> fetchSubtitle(sub, request, attempt + 1), attempt == 0 ? 10000L : 25000L);
+                    } else say(App.t(R.string.player_subs_failed));
+                });
+            } catch (java.io.IOException failed) {
+                runOnUiThread(() -> { if (currentSubtitleRequest(request)) say(App.t(R.string.player_subs_failed)); });
             }
-            runOnUiThread(() -> { if (player != null && !isFinishing()) showSubtitle(sub, f); });
         });
+    }
+
+    private boolean currentSubtitleRequest(int request) {
+        return request == subtitleRequest && player != null && !isFinishing() && !isDestroyed();
     }
 
     void showSubtitle(Subs.Sub sub, SubFetch.Fetched f) {
@@ -2563,12 +2598,12 @@ public class PlayerActivity extends Activity {
         }
     }
 
-    // ---- Simkl ----
+    // ---- Simkl, PunchPlay, Trakt, AniList, MyAnimeList ----
 
     boolean scrobbled, stopped;   // a start went out for this video; the stop went out
     final String session = java.util.UUID.randomUUID().toString();   // PunchPlay's playback_session_id for this video
 
-    /** Tells Simkl and PunchPlay where the video is, for a movie or an episode from the catalog (live streams and unknown episodes are left out). */
+    /** Tells Simkl, PunchPlay and Trakt where the video is (and the anime lists when an episode is done), for a movie or an episode from the catalog (live streams and unknown episodes are left out). */
     void scrobble(String action) {
         if (player == null || player.isCurrentMediaItemLive() || stopped || !scrobbled) return;
         long dur = player.getDuration();
@@ -2581,6 +2616,12 @@ public class PlayerActivity extends Activity {
             player.getPlaybackState() == Player.STATE_ENDED ? 100 : player.getCurrentPosition() * 100.0 / dur);
         PunchPlay.scrobble(action, getIntent().getStringExtra("imdb"), title.getText().toString(), episode,
             player.getPlaybackState() == Player.STATE_ENDED ? dur : player.getCurrentPosition(), dur, session);
+        double percent = player.getPlaybackState() == Player.STATE_ENDED ? 100 : player.getCurrentPosition() * 100.0 / dur;
+        Trakt.scrobble(action, getIntent().getStringExtra("imdb"), episode, percent);
+        if (action.equals("stop") && percent >= 80 && episode != null) {   // an anime episode counts on the anime lists too
+            WebActivity page = WebActivity.active;
+            AnimeSync.watched(seriesInfo != null ? seriesInfo : page != null ? page.show : null, episode[0], episode[1]);
+        }
     }
 
     // ---- Cast (phone): send this video to an AnantPlay TV on the same Wi-Fi, then be its remote ----

@@ -13,6 +13,11 @@ import java.util.Map;
 final class Subs {
     static final String BASE = "https://opensubtitles-v3.strem.io/subtitles/";
 
+    /** Settings, Subtitle addon: a Stremio subtitle addon's base address, asked before OpenSubtitles. "" = none. */
+    static String addonUrl() {
+        return App.prefs.getString("subAddonUrl", "").trim();
+    }
+
     static final class Sub {
         String url, lang, release;
         String encoding = "", source = "OpenSubtitles";
@@ -27,7 +32,7 @@ final class Subs {
 
     /** The /T spellings Android uses (deu, fra) as OpenSubtitles' /B ones (ger, fre). */
     static String osCode(String iso3) {
-        String c = iso3 == null ? "" : iso3.toLowerCase(Locale.ROOT);
+        String c = SubFetch.languageCode(iso3);
         String[] pairs = {"deu ger", "fra fre", "nld dut", "zho chi", "ces cze", "ron rum", "fas per", "slk slo", "msa may", "srp scc",
             "sqi alb", "hye arm", "eus baq", "mya bur", "kat geo", "isl ice", "mkd mac", "cym wel", "gre ell"};
         for (String p : pairs) if (p.startsWith(c + " ")) return p.substring(4);
@@ -52,19 +57,25 @@ final class Subs {
     };
 
     /**
-     * Files in one language for a movie (season 0) or episode: OpenSubtitles' (most downloaded first), then SubDL's when you
+     * Files in one language for a movie (season 0) or episode: your subtitle addon's when you set one (Settings), else
+     * OpenSubtitles' (most downloaded first), then SubDL's when you
      * gave a key (single episodes only: a season pack's zip holds the wrong ones). Falls back to the Stremio addon's sample
      * when OpenSubtitles can't be reached. Null when nothing could be asked. Off the main thread.
      */
     static List<Sub> search(String imdb, int season, int episode, String lang) {
         String code = osCode(lang);
+        String addon = addonUrl();
+        if (!addon.isEmpty()) {
+            List<Sub> custom = find(addon.replaceFirst("/manifest\\.json$", "").replaceFirst("/+$", "") + "/subtitles/", imdb, season, episode, code);
+            if (custom != null && !custom.isEmpty()) return custom;
+        }
         List<Sub> out = new ArrayList<>();
         boolean asked = false;
         try {
             for (SubOs.Result r : SubOs.search(HTTP, imdb, season, episode, code)) {
                 Sub s = new Sub();
                 s.url = r.url;
-                s.lang = r.lang.isEmpty() ? code : r.lang;
+                s.lang = r.lang.isEmpty() ? code : SubFetch.languageCode(r.lang);
                 s.release = r.release;
                 s.encoding = r.encoding;
                 s.hearingImpaired = r.hearingImpaired;
@@ -72,8 +83,8 @@ final class Subs {
             }
             asked = true;
         } catch (java.io.IOException e) {
-            List<Sub> sample = find(imdb, season, episode);
-            if (sample != null) { asked = true; for (Sub s : sample) if (osCode(s.lang).equals(code)) out.add(s); }
+            List<Sub> sample = find(BASE, imdb, season, episode, code);
+            if (sample != null) return sample;
         }
         return asked ? out : null;
     }
@@ -82,7 +93,17 @@ final class Subs {
     static SubFetch.Fetched fetch(Sub s) throws java.io.IOException {
         java.io.File dir = new java.io.File(App.app.getCacheDir(), "subs");
         dir.mkdirs();
-        return SubFetch.fetch(HTTP, s.url, s.encoding, s.lang, dir);
+        return SubFetch.fetch(url -> {
+            java.net.HttpURLConnection c = Warp.open(url);
+            c.setRequestProperty("User-Agent", SubOs.UA);
+            return SubFetch.openDownload(c);   // a 202 (an addon still translating) comes as RetryLaterException
+        }, s.url, s.encoding, s.lang, dir);
+    }
+
+    /** Settings value: "Off", else the addon's host. */
+    static String addonLabel() {
+        String u = addonUrl();
+        return u.isEmpty() ? App.t(R.string.home_off) : u.replaceFirst("^https?://", "").replaceFirst("/.*$", "");
     }
 
     /** How far (dp) subtitles sit above the default spot (20 dp from the bottom); negative = lower. Kept across videos. */
@@ -378,6 +399,31 @@ final class Subs {
         }).show();
     }
 
+    /** Settings, Subtitle addon: asks for the base address (empty clears it); `done` gets what was typed. */
+    static void editAddonUrl(android.app.Activity a, java.util.function.Consumer<String> done) {
+        android.widget.EditText in = WebActivity.field(a, "https://", android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        in.setText(addonUrl());
+        in.setSingleLine(true);
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(a).setTitle(App.t(R.string.subs_addon))
+            .setView(WebActivity.box(a, in)).setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null).show();
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String value = in.getText().toString().trim();
+            if (!value.isEmpty()) {
+                try {
+                    java.net.URI uri = new java.net.URI(value);
+                    if (!webUrl(uri.toURL()) || uri.getRawQuery() != null || uri.getRawFragment() != null || uri.getUserInfo() != null)
+                        throw new IllegalArgumentException();
+                } catch (Exception invalid) {
+                    in.setError(App.t(R.string.subs_addon_invalid));
+                    return;
+                }
+            }
+            done.accept(value);
+            dialog.dismiss();
+        });
+    }
+
     /** The file name (without its extension): whatever is typed is kept, minus what a file system refuses. `done` gets the name, or the old one if it was cancelled. */
     static void pickName(android.app.Activity a, String current, java.util.function.Consumer<String> done) {
         android.widget.EditText in = WebActivity.field(a, current, android.text.InputType.TYPE_CLASS_TEXT);
@@ -474,25 +520,45 @@ final class Subs {
         return b;
     }
 
-    /** season 0 = a movie. Null when OpenSubtitles can't be reached. Call off the main thread. */
-    static List<Sub> find(String imdb, int season, int episode) {
+    /** Query one Stremio-protocol addon, preserving the server's ranking. */
+    static List<Sub> find(String base, String imdb, int season, int episode, String onlyLang) {
         String path = season > 0 ? "series/" + imdb + ":" + season + ":" + episode : "movie/" + imdb;
+        java.net.HttpURLConnection connection = null;
         try {
-            JSONArray a = new JSONObject(Sites.readAll(Warp.open(BASE + path + ".json").getInputStream())).getJSONArray("subtitles");
+            java.net.URL endpoint = new java.net.URL(base + path + ".json");
+            if (!webUrl(endpoint)) return null;
+            connection = Warp.open(endpoint.toString());
+            JSONArray a;
+            try (java.io.InputStream in = connection.getInputStream()) {
+                a = new JSONObject(Sites.readAll(in)).getJSONArray("subtitles");
+            }
             List<Sub> out = new ArrayList<>();
             for (int i = 0; i < a.length(); i++) {
-                JSONObject o = a.getJSONObject(i);
+                JSONObject o = a.optJSONObject(i);
+                if (o == null || o.optString("url").isEmpty()) continue;
                 Sub s = new Sub();
-                s.url = o.getString("url");
-                s.lang = o.optString("lang", "und");
+                s.lang = SubFetch.languageCode(o.optString("lang", "und"));
+                if (!osCode(s.lang).equals(onlyLang)) continue;
+                try {
+                    java.net.URL download = new java.net.URL(connection.getURL(), o.getString("url"));
+                    if (!webUrl(download)) continue;
+                    s.url = download.toString();
+                } catch (java.net.MalformedURLException invalid) { continue; }
                 // The file name tells releases apart (the movie name is the same on every row)
                 s.release = o.optString("subtitleFileName", "").isEmpty() ? o.optString("movieReleaseName", App.t(R.string.subs_file_n, i + 1)) : o.optString("subtitleFileName");
+                s.source = base.equals(BASE) ? "OpenSubtitles" : "Subtitle addon";
                 out.add(s);
             }
             return out;
         } catch (Exception e) {
             return null;
+        } finally {
+            if (connection != null) connection.disconnect();
         }
+    }
+
+    private static boolean webUrl(java.net.URL url) {
+        return (url.getProtocol().equals("https") || url.getProtocol().equals("http")) && !url.getHost().isEmpty();
     }
 
     /** IMDb id of the best Cinemeta match for a page's title, "" when nothing matches. */

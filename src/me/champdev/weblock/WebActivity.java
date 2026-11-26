@@ -147,6 +147,7 @@ public class WebActivity extends Activity {
     int[] pendingEpisode;      // {season, episode} picked in the player's Episodes list, opened when the page is back
     View opening;              // the backdrop (poster, title, what the app is doing now) while it drives the page
     TextView openingText;
+    GifView openingGif;        // the cats (Settings, Loading screen), null for the spinner
     boolean pageError;         // the page just loaded was an error page
     boolean okOnScreen;        // an OK press began while the backdrop was up: its release takes the backdrop down
     boolean dismissed;         // you looked at the page (or it gave up, or the player took over): the backdrop stays down until the app starts something new
@@ -371,7 +372,13 @@ public class WebActivity extends Activity {
         head.setPadding(Home.dp(this, 24), 0, Home.dp(this, 24), Home.dp(this, 20));
         head.setText(name == null || name.isEmpty() ? String.valueOf(site) : name);
         wait.addView(head);
-        wait.addView(new Home.Spinner(this), new LinearLayout.LayoutParams(Home.dp(this, 44), Home.dp(this, 44)));
+        View spin = new Home.Spinner(this);   // until the picture of the state is here, or always without the cats
+        wait.addView(spin, new LinearLayout.LayoutParams(Home.dp(this, 44), Home.dp(this, 44)));
+        if (GifView.on()) {
+            openingGif = new GifView(this, spin);
+            int box = Home.dp(this, App.tv ? 190 : 140);   // every cat the same square, whatever the picture's shape
+            wait.addView(openingGif, new LinearLayout.LayoutParams(box, box));
+        }
         openingText = new TextView(this);
         openingText.setTextColor(Home.TEXT);
         openingText.setTextSize(App.tv ? 20 : 17);
@@ -573,7 +580,7 @@ public class WebActivity extends Activity {
         if (!resumed || isFinishing()) return;
         if (!App.prefs.getBoolean("native", true)) { hideOpening(); web.evaluateJavascript(CHIP, null); return; }
         if (holdForEpisode) return;   // picking the episode on the page: its stream comes next
-        step(App.t(R.string.web_step_done), sorry());   // the stream is found: the player is next
+        step("done", App.t(R.string.web_step_done), sorry());   // the stream is found: the player is next
         if (scanDone) playNative(); else { handoffWaiting = true; App.main.postDelayed(waitedHandoff, 3000); }
     }
 
@@ -1103,7 +1110,13 @@ public class WebActivity extends Activity {
      * by itself, with `giveUp` as a note. Not after you looked at the page, until the app starts something new.
      */
     void step(String text, String giveUp) {
+        step("load", text, giveUp);
+    }
+
+    /** `gif`: the cat for this moment, load | done (ignored without the cats). */
+    void step(String gif, String text, String giveUp) {
         if (dismissed || opening == null) return;
+        if (openingGif != null && !gif.equals(openingGif.want)) openingGif.play(gif);
         openingText.setText(text);
         opening.setVisibility(View.VISIBLE);
         App.main.removeCallbacks(openingGiveUp);
@@ -1115,6 +1128,7 @@ public class WebActivity extends Activity {
     void fail(String note) {
         if (isFinishing()) return;
         if (opening.getVisibility() != View.VISIBLE) { if (note != null) toast(note); return; }
+        if (openingGif != null) openingGif.play("fail");
         openingText.setText(note != null ? note : App.t(R.string.web_step_failed));
         App.main.removeCallbacks(openingGiveUp);
         openingGiveUp = this::hideOpening;

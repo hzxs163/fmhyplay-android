@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
@@ -245,9 +246,29 @@ public class SubFetchTest {
                 {"pol", "windows-1250"}, {"cze", "windows-1250"}, {"slo", "windows-1250"}, {"slv", "windows-1250"}, {"hun", "windows-1250"}, {"rum", "windows-1250"}, {"rom", "windows-1250"}, {"hrv", "windows-1250"}, {"alb", "windows-1250"}, {"bos", "windows-1250"},
                 {"est", "windows-1257"}, {"lav", "windows-1257"}, {"lit", "windows-1257"}, {"vie", "windows-1258"},
                 {"kor", "EUC-KR"}, {"chi", "GB18030"}, {"zho", "GB18030"}, {"jpn", "Shift_JIS"},
-                {"fre", "windows-1252"}, {"pob", "windows-1252"}, {"eng", "windows-1252"}, {"", "windows-1252"}, {"ARA", "windows-1256"}};
+                {"fre", "windows-1252"}, {"pob", "windows-1252"}, {"eng", "windows-1252"}, {"", "windows-1252"}, {"ARA", "windows-1256"},
+                {"sin", "UTF-8"}, {"si", "UTF-8"}, {"SI-LK", "UTF-8"}};
         for (String[] r : table) check("lang " + r[0], SubFetch.forLang(r[0]).name(), r[1]);
         check("lang tha", SubFetch.forLang("tha").name().endsWith("874"), true);
+        check("code si", SubFetch.languageCode(" si "), "sin");
+        check("code eng", SubFetch.languageCode("ENG"), "eng");
+        check("code null", SubFetch.languageCode(null), "");
+
+        // an addon still making the file answers 202: RetryLaterException, anything else is a body or an IOException
+        com.sun.net.httpserver.HttpServer srv = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        srv.createContext("/wait", x -> { x.sendResponseHeaders(202, -1); x.close(); });
+        srv.createContext("/ok", x -> { byte[] b = "hello".getBytes(StandardCharsets.UTF_8); x.sendResponseHeaders(200, b.length); x.getResponseBody().write(b); x.close(); });
+        srv.createContext("/gone", x -> { x.sendResponseHeaders(404, -1); x.close(); });
+        srv.start();
+        try {
+            String base = "http://127.0.0.1:" + srv.getAddress().getPort();
+            try (InputStream in = SubFetch.openDownload((HttpURLConnection) new URL(base + "/ok").openConnection())) { check("download 200", new String(SubOs.read(in, 100, "t"), StandardCharsets.UTF_8), "hello"); }
+            try { SubFetch.openDownload((HttpURLConnection) new URL(base + "/wait").openConnection()); check("download 202", "returned", "RetryLaterException"); }
+            catch (SubFetch.RetryLaterException e) { check("download 202", "retry", "retry"); }
+            try { SubFetch.openDownload((HttpURLConnection) new URL(base + "/gone").openConnection()); check("download 404", "returned", "IOException"); }
+            catch (SubFetch.RetryLaterException e) { check("download 404", "retry", "IOException"); }
+            catch (IOException e) { check("download 404", "io", "io"); }
+        } finally { srv.stop(0); }
 
         // text normalisation: CRLF and lone CR -> LF, trailing whitespace trimmed, nothing else touched
         f = fetch(bytes(srt("a  ", "b\rc", "\r\n") + " \r\n\t\r\n\n  ", "UTF-8"), "", "eng");

@@ -113,6 +113,7 @@
     <string name="player_skip_credits">Skip credits</string>
     <string name="player_no_subs_lang">No %1$s subtitles for this one</string>
     <string name="player_subs_failed">Could not load the subtitle file</string>
+    <string name="player_subs_translating">The subtitle is not ready yet, trying again shortly</string>
     <string name="player_subs_synced">Subtitles synced (%1$s)</string>
     <string name="player_skipped_intro">Intro skipped</string>
     <string name="player_skipped_recap">Recap skipped</string>

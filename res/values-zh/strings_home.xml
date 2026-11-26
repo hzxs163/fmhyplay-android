@@ -29,6 +29,10 @@
     <string name="home_catalog_offline">无法访问影视目录，请检查 WARP。</string>
     <string name="home_more_arrow">"更多  ›"</string>
     <string name="home_sites">站点</string>
+    <string name="home_loading_screen">加载画面</string>
+    <string name="home_loading_screen_help">应用打开站点并找到视频时显示的内容。猫：工作时一只会转圈，找到视频时跳起来，卡住时盯着你。开启后会从 Tenor 下载三只 GIF，各只下载一次；设备关闭动画时也会保持关闭。</string>
+    <string name="home_loading_spinner">转圈</string>
+    <string name="home_loading_cats">猫</string>
     <string name="home_new_anime">新番动漫</string>
     <string name="home_newly_released">最新上线</string>
     <string name="home_popular_animation">热门动漫</string>
@@ -158,6 +162,9 @@
     <string name="home_auto_skip_help">在片头和前情回顾的时间已知时会自动跳过（TheIntroDB、AniSkip）。片尾字幕仍会显示“下一集”按钮。</string>
     <string name="home_auto_subs">自动字幕</string>
     <string name="home_auto_subs_help">电影和剧集开始播放时默认使用 %1$s 字幕（你上次选择的语言）：优先使用片源自带的字幕，否则使用 OpenSubtitles。你为某个视频选择过的字幕文件之后会一直沿用。</string>
+    <string name="subs_addon">字幕插件</string>
+    <string name="subs_addon_help">优先请求一个 Stremio 字幕插件，用于 OpenSubtitles 缺少的语言（例如僧伽罗语）。粘贴它的地址（末尾可以保留 manifest.json）。插件没有结果时会使用 OpenSubtitles。</string>
+    <string name="subs_addon_invalid">请输入 http 或 https 地址，或留空。</string>
     <string name="home_simkl_help">将你在播放器中观看的电影和剧集在 Simkl（一款免费的观看记录服务）上标记为已看。仅限从电影、剧集或动漫打开的内容。</string>
     <string name="home_simkl_disconnect_title">断开 Simkl？</string>
     <string name="home_simkl_disconnect_msg">FMHYPlay 将不再向 Simkl 同步你的观看内容。你的 Simkl 观看记录会保留。</string>

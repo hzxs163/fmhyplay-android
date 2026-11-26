@@ -153,10 +153,32 @@ final class SubFetch {
         return null;
     }
 
+    /** A language code lower-cased, with Sinhala's spellings (si, si-LK) as "sin" like the subtitle sources use. */
+    static String languageCode(String lang) {
+        String code = lang == null ? "" : lang.trim().toLowerCase(Locale.ROOT);
+        return code.equals("si") || code.startsWith("si-") ? "sin" : code;
+    }
+
+    /** The body of a GET; HTTP 202 (an addon still working on the file) is a RetryLaterException, any other failure an IOException. */
+    static InputStream openDownload(java.net.HttpURLConnection connection) throws IOException {
+        try {
+            if (connection.getResponseCode() == java.net.HttpURLConnection.HTTP_ACCEPTED)
+                throw new RetryLaterException();
+            return new java.io.FilterInputStream(connection.getInputStream()) {
+                @Override public void close() throws IOException {
+                    try { super.close(); } finally { connection.disconnect(); }
+                }
+            };
+        } catch (IOException e) {
+            connection.disconnect();
+            throw e;
+        }
+    }
+
     /** Legacy code page by OpenSubtitles language code (ISO 639-2/B); Latin languages and unknown codes get windows-1252. */
     static Charset forLang(String lang) {
         String n;
-        switch (lang == null ? "" : lang.trim().toLowerCase(Locale.ROOT)) {
+        switch (languageCode(lang)) {
             case "ara": case "per": case "fas": case "urd": n = "windows-1256"; break;
             case "heb": n = "windows-1255"; break;
             case "rus": case "bul": case "ukr": case "srp": case "scc": case "mkd": case "mac": case "bel": n = "windows-1251"; break;
@@ -170,10 +192,16 @@ final class SubFetch {
             case "chi": case "zho": case "zhe": n = "GB18030"; break;
             case "zht": n = "Big5"; break;
             case "jpn": n = "Shift_JIS"; break;
+            case "sin": n = "UTF-8"; break;   // Sinhala files come as UTF-8 (the BOM is stripped in fetch)
             default: n = "windows-1252";
         }
         Charset c = charset(n);
         return c != null ? c : StandardCharsets.ISO_8859_1;
+    }
+
+    /** A 202 from a subtitle addon: the file is being made, ask again shortly. */
+    static class RetryLaterException extends IOException {
+        RetryLaterException() { super("Subtitle not ready yet (HTTP 202)"); }
     }
 
     static String sha1(String s) throws IOException {

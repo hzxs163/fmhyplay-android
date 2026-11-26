@@ -112,6 +112,7 @@
     <string name="player_skip_credits">跳过片尾字幕</string>
     <string name="player_no_subs_lang">这部没有 %1$s 字幕</string>
     <string name="player_subs_failed">无法加载字幕文件</string>
+    <string name="player_subs_translating">字幕还没准备好，稍后再试</string>
     <string name="player_subs_synced">字幕已同步（%1$s）</string>
     <string name="player_skipped_intro">已跳过片头</string>
     <string name="player_skipped_recap">已跳过前情回顾</string>

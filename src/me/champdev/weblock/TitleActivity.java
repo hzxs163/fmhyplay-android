@@ -309,8 +309,8 @@ public class TitleActivity extends Home {
     }
 
     /**
-     * The sites for this kind of title: your favorites first, then the sources' sites. Anime gets only dedicated anime sites
-     * (favorites included only when they are among them), and the TV ones only if there are none.
+     * The sites for this kind of title: your favorites first (all of them, anime too: you added them), then the sources' sites.
+     * Anime gets only dedicated anime sites from the sources, and the TV ones only if there are none.
      */
     List<Sites.Site> options() {
         List<Sites.Site> row = Sites.load().get(t.anime ? Cats.ANIME : t.series() ? Cats.TV : Cats.MOVIES);
@@ -328,7 +328,7 @@ public class TitleActivity extends Home {
             row.sort(java.util.Comparator.comparing(s -> !Sites.hasLink(s.url, kind)));
         }
         List<Sites.Site> out = new ArrayList<>();
-        for (Sites.Site f : Sites.favorites()) if (!t.anime || (row != null && Sites.has(row, f.url))) out.add(f);
+        out.addAll(Sites.favorites());
         if (row != null) for (Sites.Site s : row) if (!Sites.has(out, s.url) && out.size() < 30) out.add(s);
         return out;
     }

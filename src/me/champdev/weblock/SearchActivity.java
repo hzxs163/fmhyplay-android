@@ -58,7 +58,8 @@ public class SearchActivity extends Home {
         ac.setDropDownBackgroundDrawable(rounded(CARD, dp(14)));
         ac.setDropDownVerticalOffset(dp(6));
         ac.setOnItemClickListener((p, v, i, id) -> searchNow());
-        ac.setOnClickListener(v -> showRecent());
+        // A click listener makes TextView skip the keyboard on OK (DPAD_CENTER), so a remote could not open it (Fire TV): show it here
+        ac.setOnClickListener(v -> { showRecent(); ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(v, 0); });
         box = ac;
         box.setSingleLine(true);
         box.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
@@ -88,8 +89,15 @@ public class SearchActivity extends Home {
                 App.main.postDelayed(fetchTitles, DEBOUNCE);
             }
         });
-        // "Search" on the keyboard: hide it so the arrows can move over the results
-        box.setOnEditorActionListener((v, action, ev) -> { searchNow(); return true; });
+        // "Search" on the keyboard (or Enter on a real one): hide it so the arrows can move over the results. OK on a remote is DPAD_CENTER
+        // and reaches this listener as IME_NULL: it must open the keyboard (the default), not search an empty box (Fire TV never showed it)
+        box.setOnEditorActionListener((v, action, ev) -> {
+            boolean enter = ev != null && ev.getKeyCode() == android.view.KeyEvent.KEYCODE_ENTER && ev.getDevice() != null
+                && ev.getDevice().getKeyboardType() == android.view.InputDevice.KEYBOARD_TYPE_ALPHABETIC;   // not a remote whose OK sends Enter
+            if (action != EditorInfo.IME_ACTION_SEARCH && !enter) return false;
+            searchNow();
+            return true;
+        });
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         android.widget.ImageView mic = iconButton(R.drawable.ic_mic, App.t(R.string.search_voice), v -> listen(this::spoken));

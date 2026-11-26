@@ -29,6 +29,10 @@
     <string name="home_catalog_offline">Can\'t reach the catalog. Check WARP.</string>
     <string name="home_more_arrow">"More  ›"</string>
     <string name="home_sites">Sites</string>
+    <string name="home_loading_screen">Loading screen</string>
+    <string name="home_loading_screen_help">What shows while the app opens a site and finds the video. Cats: one spins while it works, jumps when the stream is found and stares when it gets stuck. They are three GIFs fetched once from Tenor, only when you turn them on, and they stay off when the device\'s animations are off.</string>
+    <string name="home_loading_spinner">Spinner</string>
+    <string name="home_loading_cats">Cats</string>
     <string name="home_new_anime">New anime</string>
     <string name="home_newly_released">Newly released</string>
     <string name="home_popular_animation">Popular anime</string>
@@ -150,6 +154,9 @@
     <string name="home_auto_skip_help">Intros and recaps go by themselves, when their times are known (TheIntroDB, AniSkip). Credits still show a Next episode button.</string>
     <string name="home_auto_subs">Auto subtitles</string>
     <string name="home_auto_subs_help">Movies and episodes start with %1$s subtitles (the last language you picked): the stream\'s own, else OpenSubtitles. A file you picked for a video always comes back.</string>
+    <string name="subs_addon">Subtitle addon</string>
+    <string name="subs_addon_help">A Stremio subtitle addon to ask first, for a language OpenSubtitles lacks (Sinhala, say). Paste its address (manifest.json may stay on the end). OpenSubtitles is used when it has nothing.</string>
+    <string name="subs_addon_invalid">Enter an http or https address, or leave it empty.</string>
     <string name="home_simkl_help">Marks movies and episodes you watch in the player as watched on Simkl, a free tracker. Titles opened from Movies, TV or Anime.</string>
     <string name="home_simkl_disconnect_title">Disconnect Simkl?</string>
     <string name="home_simkl_disconnect_msg">AnantPlay stops telling Simkl what you watch. Your Simkl history stays.</string>

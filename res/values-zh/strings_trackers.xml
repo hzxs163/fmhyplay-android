@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trakt、AniList 和 MyAnimeList 观看记录：设置项、登录对话框和播放器提示。各语言使用相同的名称。 -->
+<resources>
+    <string name="trakt_help">将你在播放器中观看的电影和剧集在 Trakt（一款免费的观看记录服务）上标记为已看。仅限从电影、剧集或动漫打开的内容。</string>
+    <string name="trakt_disconnect_title">断开 Trakt？</string>
+    <string name="trakt_disconnect_msg">FMHYPlay 将不再向 Trakt 同步你的观看内容。你的 Trakt 观看记录会保留。</string>
+    <string name="trakt_connect">连接 Trakt</string>
+    <string name="trakt_offline">无法连接 Trakt。请检查 WARP 后重试。</string>
+    <string name="trakt_connected">Trakt 已连接</string>
+    <string name="trakt_expired">验证码已过期。请关闭此窗口，再按一次 Trakt 获取新码。</string>
+    <string name="trakt_refused">Trakt 拒绝了此请求。请关闭此窗口后重试。</string>
+    <string name="trakt_marked">已在 Trakt 标记为已看</string>
+    <string name="anilist_help">在播放器中观看动漫剧集时，将进度同步到 AniList。仅限从动漫打开的内容。你需要在 AniList 自己的页面上登录。</string>
+    <string name="anilist_disconnect_title">断开 AniList？</string>
+    <string name="anilist_disconnect_msg">FMHYPlay 将不再更新 AniList。你的列表会保留。</string>
+    <string name="anilist_connected">AniList 已连接</string>
+    <string name="anilist_marked">AniList 进度已更新</string>
+    <string name="mal_help">在播放器中观看动漫剧集时，将进度同步到 MyAnimeList。仅限从动漫打开的内容。你需要在 MyAnimeList 自己的页面上登录。</string>
+    <string name="mal_disconnect_title">断开 MyAnimeList？</string>
+    <string name="mal_disconnect_msg">FMHYPlay 将不再更新 MyAnimeList。你的列表会保留。</string>
+    <string name="mal_connected">MyAnimeList 已连接</string>
+    <string name="mal_marked">MyAnimeList 进度已更新</string>
+    <string name="tracker_signin_failed">登录未完成，请重试。</string>
+</resources>

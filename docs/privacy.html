@@ -21,7 +21,8 @@
 <h2>Who the app talks to</h2>
 <ul>
 <li><b>The sites and playlists you open</b>, like any web browser. Their own privacy policies apply.</li>
-<li><b>Catalog and subtitles:</b> Cinemeta and Kitsu (titles and posters), OpenSubtitles (when you search subtitles).</li>
+<li><b>Catalog and subtitles:</b> Cinemeta and Kitsu (titles and posters), OpenSubtitles (when you search subtitles), or first the subtitle addon you set in Settings (it gets the title's IMDb id, season, episode and language).</li>
+<li><b>Loading cats:</b> only if you turn them on in Settings, three GIFs are fetched once from Tenor's CDN and kept on the device.</li>
 <li><b>Cloudflare WARP</b>, when WARP is on: the app's traffic goes through Cloudflare.</li>
 <li><b>GitHub</b>, to check for and download updates.</li>
 <li><b>Casting:</b> your phone talks directly to the TV on your own Wi-Fi.</li>
@@ -29,6 +30,9 @@
 
 <h2>Simkl and PunchPlay (optional)</h2>
 <p>Only if you connect them in Settings: when you play a movie or episode opened from the catalog, FMHYPlay sends that service its IDs (IMDb), the season and episode, how far you are, and whether playback started, paused or stopped, so it can mark it watched in your history there. The sign-in token is stored only on your device. Disconnecting in Settings stops this; you can also revoke FMHYPlay in the service's own settings. Their privacy policies apply to what they keep.</p>
+
+<h2>MyAnimeList and AniList (optional)</h2>
+<p>Only if you connect them in Settings: you sign in on the service's own page inside the app, and the token it gives back is stored only on your device. When you watch an anime episode opened from the catalog to 80% or more, AnantPlay looks up the anime's IDs (from its IMDb id, through arm.haglund.dev) and asks the service for your list entry, then sets your watched episode count there (and marks the show completed after its last episode). Nothing else is sent. Disconnecting in Settings stops this; you can also revoke AnantPlay in the service's own settings. Their privacy policies apply to what they keep.</p>
 
 <h2>Contact</h2>
 <p>Questions: open an issue at <a href="https://github.com/fmhyplay/android/issues">github.com/fmhyplay/android</a>.</p>
